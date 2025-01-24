@@ -1,16 +1,31 @@
 import sqlite3
 
-# Create a connection to the database (creates the database if it doesn't exist)
-conn = sqlite3.connect('Budgetwise.db')
+class database():
 
-# Enable foreign key constraint
-conn.execute("PRAGMA foreign_keys = 1")
+    def __init__(self, name):
+        self.db_name = f'{name}.db'
+        self.conn = None
+        self.cursor = None
+        self.open_db()
+        self.create_tables()
 
-# Create a cursor object
-cursor = conn.cursor()
+    def open_db(self):
+        #Open a database connection and create a cursor.
+        self.conn = sqlite3.connect(self.db_name)
+        self.conn.execute("PRAGMA foreign_keys = 1")
+        self.cursor = self.conn.cursor()
 
-# Create users table
-cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+    def close_db(self):
+        #Commit changes and close the database connection.
+        if self.conn:
+            self.conn.commit()
+            self.conn.close()
+            self.conn = None
+            self.cursor = None
+
+    def create_tables(self):
+        # Create users table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     userID INTEGER PRIMARY KEY,
                     username TEXT,
                     passwordhash TEXT,
@@ -22,21 +37,22 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     updatedAT TEXT
                 )''')
 
-# Create security_questions table
-cursor.execute('''CREATE TABLE IF NOT EXISTS security_questions (
+        # Create security_questions table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS security_questions (
                     questionID INTEGER PRIMARY KEY,
                     question_text TEXT
                 )''')
 
-# Create user_security_questions table with references to users and security_questions tables
-cursor.execute('''CREATE TABLE IF NOT EXISTS user_security_questions (
-                    the_user INTEGER PRIMARY KEY REFERENCES users(userID),
+        # Create user_security_questions table with references to users and security_questions tables
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS user_security_questions (
+                    answer_id INTEGER PRIMARY KEY,
+                    the_user INTEGER REFERENCES users(userID),
                     the_question INTEGER REFERENCES security_questions(questionID),
                     answer TEXT
                 )''')
 
-# Create budget table with reference to users table
-cursor.execute('''CREATE TABLE IF NOT EXISTS budget (
+        # Create budget table with reference to users table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS budget (
                     budgetID INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
                     budget_Name TEXT,
@@ -45,8 +61,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS budget (
                     end_Date TEXT
                 )''')
 
-# Create category table with reference to users table
-cursor.execute('''CREATE TABLE IF NOT EXISTS category (
+        # Create category table with reference to users table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS category (
                     categoryID INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
                     catagory_name TEXT,
@@ -54,8 +70,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS category (
                     catagory_usage_ranking INTEGER
                 )''')
 
-# Create budget_accounts table with references to users, category, and budget tables
-cursor.execute('''CREATE TABLE IF NOT EXISTS budget_accounts (
+        #   Create budget_accounts table with references to users, category, and budget tables
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS budget_accounts (
                     budget_accounts_id INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
                     the_category INTEGER REFERENCES category(categoryID),
@@ -70,8 +86,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS budget_accounts (
                     importance_rating INTEGER
                 )''')
 
-# Create vendor table with reference to users table
-cursor.execute('''CREATE TABLE IF NOT EXISTS vendor (
+        # Create vendor table with reference to users table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS vendor (
                     vendor_id INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
                     vendor_name TEXT,
@@ -79,8 +95,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS vendor (
                     vendor_usage_ranking INTEGER
                 )''')
 
-# Create alerts table with references to budget_accounts and users tables
-cursor.execute('''CREATE TABLE IF NOT EXISTS alerts (
+        # Create alerts table with references to budget_accounts and users tables
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS alerts (
                     alert_id INTEGER PRIMARY KEY,
                     budget_accounts_id INTEGER REFERENCES budget_accounts(budget_accounts_id),
                     the_user INTEGER REFERENCES users(userID),
@@ -94,8 +110,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS alerts (
                     actice_until TEXT
                 )''')
 
-# Create report table with reference to users table
-cursor.execute('''CREATE TABLE IF NOT EXISTS report (
+        # Create report table with reference to users table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS report (
                     report_id INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
                     report_type INTEGER,
@@ -104,8 +120,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS report (
                     report_frequency INTEGER
                 )''')
    
-# Create transactions table with references to budget_accounts, users, category, and vendor tables
-cursor.execute('''CREATE TABLE IF NOT EXISTS transactions (
+        # Create transactions table with references to budget_accounts, users, category, and vendor tables
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS transactions (
                     transaction_id INTEGER PRIMARY KEY,
                     budget_accounts_id INTEGER REFERENCES budget_accounts(budget_accounts_id),
                     the_user INTEGER REFERENCES users(userID),
@@ -119,8 +135,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS transactions (
                     importance_rating INTEGER
                 )''')
 
-# Create audit_log table with references to users and transactions tables
-cursor.execute('''CREATE TABLE IF NOT EXISTS audit_log (
+        # Create audit_log table with references to users and transactions tables
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS audit_log (
                     log_id INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
                     transaction_id INTEGER REFERENCES transactions(transaction_id),
@@ -129,9 +145,3 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS audit_log (
                     record_id INTEGER,
                     timestamp TEXT
                 )''')
-
-# Commit the changes
-conn.commit()
-
-# Close the connection
-conn.close()
