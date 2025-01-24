@@ -3,17 +3,22 @@ import sqlite3
 class database():
 
     def __init__(self, name):
-        self.db_name = f'{name}.db'
-        self.conn = None
-        self.cursor = None
+        self.__db_name = f'{name}.db'
+        self.__conn = None
+        self.__cursor = None
         self.open_db()
         self.create_tables()
 
     def open_db(self):
         #Open a database connection and create a cursor.
-        self.conn = sqlite3.connect(self.db_name)
+        self.conn = sqlite3.connect(self.__db_name)
         self.conn.execute("PRAGMA foreign_keys = 1")
         self.cursor = self.conn.cursor()
+
+    def commit_db(self):
+        
+        if self.conn:
+            self.conn.commit()
 
     def close_db(self):
         #Commit changes and close the database connection.
@@ -24,6 +29,7 @@ class database():
             self.cursor = None
 
     def create_tables(self):
+
         # Create users table
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                     userID INTEGER PRIMARY KEY,
@@ -145,3 +151,10 @@ class database():
                     record_id INTEGER,
                     timestamp TEXT
                 )''')
+    
+    def check_connection(self):
+        
+        if self.conn:
+            return True
+        else:
+            return False
