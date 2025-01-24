@@ -143,7 +143,8 @@ def create_encrypted_database():
                         the_user INTEGER REFERENCES users(userID),
                         catagory_name TEXT,
                         description TEXT,
-                        catagory_usage_ranking INTEGER
+                        catagory_usage_ranking INTEGER,
+                        is_default int
                     )''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS budget_accounts (
