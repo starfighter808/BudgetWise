@@ -6,6 +6,8 @@ class Database:
         self.cursor = self.connection.cursor()
         self.create_tables()
 
+    # We would add these 3 functions to the database class:
+    # ---------------------------------------------------------
     def execute(self, query, params=()):
         self.cursor.execute(query, params)
         self.connection.commit()
@@ -17,7 +19,7 @@ class Database:
     def fetchall(self, query, params=()):
         self.cursor.execute(query, params)
         return self.cursor.fetchall()
-
+    # ------------------------------------------------------
     def create_tables(self):
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                             userID INTEGER PRIMARY KEY,
@@ -32,6 +34,6 @@ class Database:
                         )''')
         
 
-    
+    # This would be a good idea to add for cleanup
     def close(self):
         self.connection.close()
