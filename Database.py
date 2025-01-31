@@ -7,8 +7,8 @@ class database():
         self.__conn = None
         self.__cursor = None
         self.open_db()
-        self.create_tables()
-
+        self.create_tables()            # we will have to handle this during the install process only
+                                        # We don't want to create multiple databases every time we create a database object
     def open_db(self):
         #Open a database connection and create a cursor.
         self.conn = sqlite3.connect(self.__db_name)
