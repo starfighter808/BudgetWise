@@ -1,8 +1,9 @@
 import flet as ft
 import atexit
 from Database import database
-from BWScenes import WelcomeScene, LoginScene
-        
+from BWScenes import WelcomeScene
+from BWForms import LoginScene, SignInScene, SecurityQuestionsDialog
+from BWMenu import MenuBar        
         
     
 
@@ -29,8 +30,6 @@ def main(page: ft.Page):
     else:
         print("Not Connected")
 
-    
-
     page.title = "Welcome to BudgetWise"
     page.window_width = 1280
     page.window_height = 960
@@ -45,96 +44,38 @@ def main(page: ft.Page):
 
     def change_scene(scene_index):
         if 0 <= scene_index < len(scenes):
-            scene_content.content = scenes[scene_index].get_content().content
+            scene_content.content = scenes[scene_index].get_content()
             page.update()
         else:
             print(f"Error: Scene index {scene_index} is out of range.")
 
+    login_form = LoginScene()
+    signin_form = SignInScene()
+
+    def show_login_form():
+        print("Showing login form")
+        login_form.open = True
+        signin_form.open = False
+        page.update()
+
+    def show_signin_form():
+        print("Showing sign-in form")
+        signin_form.open = True
+        login_form.open = False
+        page.update()
+
     scenes = [
-        WelcomeScene(change_scene_callback=change_scene),
-        LoginScene()
+        WelcomeScene(change_scene_callback=change_scene, show_login_form=show_login_form, show_signin_form=show_signin_form),
     ]
 
-    menu = ft.Column(
-    controls=[
-        ft.ElevatedButton(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.DASHBOARD),
-                    ft.Text("Dashboard")
-                ],
-                spacing=5
-            ),
-            on_click=lambda e: change_scene(3)
-        ),
-        ft.ElevatedButton(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.ACCOUNT_BALANCE),
-                    ft.Text("Accounts")
-                ],
-                spacing=5
-            ),
-            on_click=lambda e: change_scene(4)
-        ),
-        ft.ElevatedButton(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.HISTORY),
-                    ft.Text("History")
-                ],
-                spacing=5
-            ),
-            on_click=lambda e: change_scene(5)
-        ),
-        ft.ElevatedButton(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.SWAP_HORIZ),
-                    ft.Text("Transactions")
-                ],
-                spacing=5
-            ),
-            on_click=lambda e: change_scene(6)
-        ),
-        ft.ElevatedButton(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.NOTIFICATIONS),
-                    ft.Text("Notifications")
-                ],
-                spacing=5
-            ),
-            on_click=lambda e: change_scene(7)
-        ),
-        ft.ElevatedButton(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.ACCOUNT_BOX),
-                    ft.Text("Preferences")
-                ],
-                spacing=5
-            ),
-            on_click=lambda e: change_scene(8)
-        ),
-        ft.ElevatedButton(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(ft.Icons.SETTINGS),
-                    ft.Text("Settings")
-                ],
-                spacing=5
-            ),
-            on_click=lambda e: change_scene(9)
-        )
-    ],
-    width=150,
-    height=page.window_height,
-    visible=False
-)
+    menu = MenuBar(change_scene_callback=change_scene)
 
     toggle_button = ft.ElevatedButton("Toggle Menu", on_click=toggle_menu)
-    scene_content = ft.Container(content=scenes[0].get_content().content, expand=True)
+    scene_content = ft.Container(content=scenes[0].get_content(), expand=True)
+
+    page.overlay.append(login_form)
+    page.overlay.append(signin_form)
+    page.overlay.append(signin_form.security_questions_dialog)  # Add security questions dialog to overlay
 
     page.add(
         ft.Row([toggle_button]),
@@ -148,8 +89,5 @@ def main(page: ft.Page):
     )
 
     page.update()
-    
-    
-       
 
 ft.app(main)
