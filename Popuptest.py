@@ -1,42 +1,74 @@
 import flet as ft
-
-class LoginScene(ft.AlertDialog):
-    def __init__(self):
-        # Create username and password fields
-        Login_text = ft.Text("Log in", size=100, color="grey", weight="bold")
-        username_field = ft.TextField(label="Username", width=300)
-        password_field = ft.TextField(label="Password", password=True, can_reveal_password=True, width=300)
-        login_button = ft.ElevatedButton(text="Login", on_click=lambda _: print("Login clicked"))
-
-        # Create a column with the fields and button, aligned to the center
-        login_column = ft.Column(
-            controls=[Login_text, username_field, password_field, login_button],
-            alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=20
-        )
-
-        # Wrap the column in a container and set alignment to center
-        centered_container = ft.Container(
-            content=login_column,
-            alignment=ft.alignment.center,
-            bgcolor="#0d0d10",  # Change the background color here
-            width=720,  # Adjust the width
-            height=960,  # Adjust the height
-            padding=20  # Optional: Add padding inside the container
-        )
-
-        # Initialize the AlertDialog with the container as content
-        super().__init__(content=centered_container)
+import atexit
+from Database import database
+from BWScenes import WelcomeScene, DashboardScene
+from BWForms import LoginScene, SignInScene, SecurityQuestionsDialog
+from BWMenu import MenuBar        
+        
+    
 
 def main(page: ft.Page):
-    login_dialog = LoginScene()
+    page.title = "Welcome to BudgetWise"
+    page.window_width = 1280
+    page.window_height = 960
 
-    def open_login_dialog(e):
-        login_dialog.open = True
+    menu_visible = False
+
+    def toggle_menu(e):
+        nonlocal menu_visible
+        menu_visible = not menu_visible
+        scenes[1].toggle_menu()
         page.update()
 
-    page.overlay.append(login_dialog)
-    page.add(ft.ElevatedButton("Show Login", on_click=open_login_dialog))
+    def change_scene(scene_index):
+        if 0 <= scene_index < len(scenes):
+            scene_content.content = scenes[scene_index].get_content()
+            toggle_button.disabled = scene_index == 0  # Disable toggle button for scene 0
+            page.update()
+        else:
+            print(f"Error: Scene index {scene_index} is out of range.")
 
-ft.app(target=main)
+    login_form = LoginScene(change_scene_callback=change_scene)
+    signin_form = SignInScene()
+
+    def show_login_form():
+        print("Showing login form")
+        login_form.open = True
+        signin_form.open = False
+        page.update()
+
+    def show_signin_form():
+        print("Showing sign-in form")
+        signin_form.open = True
+        login_form.open = False
+        page.update()
+
+    scenes = [
+        WelcomeScene(change_scene_callback=change_scene, show_login_form=show_login_form, show_signin_form=show_signin_form),
+        DashboardScene(change_scene_callback=change_scene, p_width=page.window_width, p_height=page.window_height),
+    ]
+
+    menu = MenuBar(change_scene_callback=change_scene)
+
+    toggle_button = ft.ElevatedButton("Toggle Menu", on_click=toggle_menu, disabled=True)  # Initially disabled
+    scene_content = ft.Container(content=scenes[0].get_content(), expand=True)
+
+    page.overlay.append(login_form)
+    page.overlay.append(signin_form)
+    page.overlay.append(signin_form.security_questions_dialog)  # Add security questions dialog to overlay
+
+    page.add(
+        ft.Row([toggle_button]),
+        ft.Stack(
+            controls=[
+                scene_content,
+                menu,
+            ],
+            expand=True
+        )
+    )
+
+    page.update()
+
+ft.app(main)
+

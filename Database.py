@@ -39,8 +39,8 @@ class database():
                     notificationsEnabled INTEGER,
                     Language INTEGER,
                     default_chart INTEGER,
-                    createdAt TEXT,
-                    updatedAT TEXT
+                    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updatedAT DATETIME DEFAULT CURRENT_TIMESTAMP
                 )''')
 
         # Create security_questions table
@@ -63,8 +63,8 @@ class database():
                     the_user INTEGER REFERENCES users(userID),
                     budget_Name TEXT,
                     allocatedMonitaryAmount REAL,
-                    start_Date TEXT,
-                    end_Date TEXT
+                    start_Date DATETIME,
+                    end_Date DATETIME
                 )''')
 
         # Create category table with reference to users table
@@ -87,8 +87,8 @@ class database():
                     account_type INTEGER,
                     balance REAL,
                     savings_goal REAL,
-                    created_at TEXT,
-                    updated_at TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     notes TEXT,
                     importance_rating INTEGER
                 )''')
@@ -111,10 +111,10 @@ class database():
                     alert_type TEXT,
                     frequency INTEGER,
                     status INTEGER,
-                    created_at TEXT,
-                    updated_at TEXT,
-                    active_from TEXT,
-                    actice_until TEXT
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    active_from DATETIME,
+                    active_until DATETIME
                 )''')
 
         # Create report table with reference to users table
@@ -122,7 +122,7 @@ class database():
                     report_id INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
                     report_type INTEGER,
-                    report_date TEXT,
+                    report_date DATETIME DEFAULT CURRENT_TIMESTAMP,
                     report_data BLOB,
                     report_frequency INTEGER
                 )''')
@@ -136,7 +136,7 @@ class database():
                     vendor_id INTEGER REFERENCES vendor(vendor_id),
                     transaction_type INTEGER,
                     amount REAL,
-                    transaction_date TEXT,
+                    transaction_date DATETIME,
                     description TEXT,
                     recurring INTEGER,
                     importance_rating INTEGER
@@ -150,7 +150,7 @@ class database():
                     action_type INTEGER,
                     related_table INTEGER,
                     record_id INTEGER,
-                    timestamp TEXT
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )''')
     
     def check_connection(self):

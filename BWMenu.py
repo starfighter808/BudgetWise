@@ -12,7 +12,7 @@ class MenuBar(ft.Column):
                         ],
                         spacing=5
                     ),
-                    on_click=lambda e: change_scene_callback(3)
+                    on_click=lambda e: change_scene_callback(1)
                 ),
                 ft.ElevatedButton(
                     content=ft.Row(

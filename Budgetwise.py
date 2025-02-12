@@ -1,13 +1,14 @@
 import flet as ft
 import atexit
 from Database import database
-from BWScenes import WelcomeScene
+from BWScenes import WelcomeScene, DashboardScene
 from BWForms import LoginScene, SignInScene, SecurityQuestionsDialog
 from BWMenu import MenuBar        
         
     
 
 def main(page: ft.Page):
+    # DO NOT TOUCH THIS CODE. APP BREAKS
     BudgetDb = database('Budgetwise')
 
     def on_exit():
@@ -29,6 +30,8 @@ def main(page: ft.Page):
         print("We are connected")
     else:
         print("Not Connected")
+    
+    #____________________________________________________________________
 
     page.title = "Welcome to BudgetWise"
     page.window_width = 1280
@@ -39,17 +42,18 @@ def main(page: ft.Page):
     def toggle_menu(e):
         nonlocal menu_visible
         menu_visible = not menu_visible
-        menu.visible = menu_visible
+        scenes[1].toggle_menu()
         page.update()
 
     def change_scene(scene_index):
         if 0 <= scene_index < len(scenes):
             scene_content.content = scenes[scene_index].get_content()
+            toggle_button.disabled = scene_index == 0  # Disable toggle button for scene 0
             page.update()
         else:
             print(f"Error: Scene index {scene_index} is out of range.")
 
-    login_form = LoginScene()
+    login_form = LoginScene(change_scene_callback=change_scene)
     signin_form = SignInScene()
 
     def show_login_form():
@@ -66,11 +70,12 @@ def main(page: ft.Page):
 
     scenes = [
         WelcomeScene(change_scene_callback=change_scene, show_login_form=show_login_form, show_signin_form=show_signin_form),
+        DashboardScene(change_scene_callback=change_scene, p_width=page.window_width, p_height=page.window_height),
     ]
 
     menu = MenuBar(change_scene_callback=change_scene)
 
-    toggle_button = ft.ElevatedButton("Toggle Menu", on_click=toggle_menu)
+    toggle_button = ft.ElevatedButton("Toggle Menu", on_click=toggle_menu, disabled=True)  # Initially disabled
     scene_content = ft.Container(content=scenes[0].get_content(), expand=True)
 
     page.overlay.append(login_form)

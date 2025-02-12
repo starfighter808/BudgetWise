@@ -2,16 +2,18 @@ import flet as ft
 
 
 class LoginScene(ft.AlertDialog):
-    def __init__(self):
+    def __init__(self, change_scene_callback):
+        self.change_scene_callback = change_scene_callback
         # Create username and password fields
-        Login_text = ft.Text("Log in", size=100, color="grey", weight="bold")
-        username_field = ft.TextField(label="Username", width=300)
-        password_field = ft.TextField(label="Password", password=True, can_reveal_password=True, width=300)
-        login_button = ft.ElevatedButton(text="Login", on_click=lambda _: print("Login clicked"))
+        self.Login_text = ft.Text("Log in", size=100, color="grey", weight="bold")
+        self.username_field = ft.TextField(label="Username", width=300)
+        self.password_field = ft.TextField(label="Password", password=True, can_reveal_password=True, width=300)
+        self.login_button = ft.ElevatedButton(text="Login", on_click=self.login)  # Update the on_click method
+        self.error_message = ft.Text("", color="red")
 
         # Create a column with the fields and button, aligned to the center
-        login_column = ft.Column(
-            controls=[Login_text, username_field, password_field, login_button],
+        self.login_column = ft.Column(
+            controls=[self.Login_text, self.username_field, self.password_field, self.login_button, self.error_message],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=20
@@ -19,7 +21,7 @@ class LoginScene(ft.AlertDialog):
 
         # Wrap the column in a container and set alignment to center
         centered_container = ft.Container(
-            content=login_column,
+            content=self.login_column,
             alignment=ft.alignment.center,
             bgcolor="#0d0d10",  # Change the background color here
             width=720,  # Adjust the width
@@ -30,6 +32,27 @@ class LoginScene(ft.AlertDialog):
         # Initialize the AlertDialog with the container as content
         super().__init__(content=centered_container)
 
+    def login(self, e):
+        predefined_username = "admin"
+        predefined_password = "password"
+        
+        user_input_username = self.username_field.value
+        user_input_password = self.password_field.value
+
+        print("Login button clicked")  # Debugging print statement
+        print(f"Username: {user_input_username}, Password: {user_input_password}")  # Debugging print statement
+
+        if user_input_username == predefined_username and user_input_password == predefined_password:
+            self.change_scene_callback(1)  # Index of Dashboard scene
+            self.open = False  # Close the login form
+        else:
+            # Update the error message
+            self.error_message.value = "Invalid username or password."
+            self.error_message.update()
+
+        self.update()  # Ensure the UI is updated
+
+
 class SignInScene(ft.AlertDialog):
     def __init__(self):
         # Create username and password fields
@@ -39,12 +62,11 @@ class SignInScene(ft.AlertDialog):
         self.confPassword_field = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, width=300)
         self.error_message = ft.Text("", color="red")
 
-        signup_button = ft.ElevatedButton(text="Sign-up", on_click=self.validate_password)
-        security_questions_button = ft.ElevatedButton(text="Security Questions", on_click=self.show_security_questions)
+        signup_button = ft.ElevatedButton(text="Next", on_click=self.validate_password)  # Changed text from "Sign-up" to "Next"
 
         # Create a column with the fields and button, aligned to the center
-        login_column = ft.Column(
-            controls=[signup_text, self.username_field, self.password_field, self.confPassword_field, self.error_message, signup_button, security_questions_button],
+        signup_column = ft.Column(
+            controls=[signup_text, self.username_field, self.password_field, self.confPassword_field, self.error_message, signup_button],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=20
@@ -52,7 +74,7 @@ class SignInScene(ft.AlertDialog):
 
         # Wrap the column in a container and set alignment to center
         centered_container = ft.Container(
-            content=login_column,
+            content=signup_column,
             alignment=ft.alignment.center,
             bgcolor="#0d0d10",  # Change the background color here
             width=720,  # Adjust the width
@@ -65,11 +87,14 @@ class SignInScene(ft.AlertDialog):
         self.security_questions_dialog = SecurityQuestionsDialog()
 
     def validate_password(self, e):
-        if self.password_field.value != self.confPassword_field.value:
+        if not self.username_field.value or not self.password_field.value or not self.confPassword_field.value:
+            self.error_message.value = "All fields are required."
+        elif self.password_field.value != self.confPassword_field.value:
             self.error_message.value = "Passwords do not match."
         else:
-            self.error_message.value = "Sign-Up clicked."
+            self.error_message.value = ""
             print("Sign-Up clicked")
+            self.show_security_questions(e)
         self.update()
 
     def show_security_questions(self, e):
