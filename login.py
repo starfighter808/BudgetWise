@@ -35,7 +35,7 @@ class Login:
         return userID
 
 
-# FOR TESTING
-login = Login()
-login.signUp("jim", "strongpassword")
-login.login("Jim", "strongpassword")
+# FOR TESTING - Uncomment if you want to test only this file
+# login = Login()
+# login.signUp("jim", "strongpassword")
+# login.login("Jim", "strongpassword")
