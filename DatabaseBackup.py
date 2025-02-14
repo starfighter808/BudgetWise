@@ -68,11 +68,20 @@ class database():
                 )''')
 
         # Create category table with reference to users table
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS category (
+                    categoryID INTEGER PRIMARY KEY,
+                    the_user INTEGER REFERENCES users(userID),
+                    catagory_name TEXT,
+                    description TEXT,
+                    catagory_usage_ranking INTEGER,
+                    is_default INTEGER
+                )''')
 
         #   Create budget_accounts table with references to users, category, and budget tables
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS budget_accounts (
                     budget_accounts_id INTEGER PRIMARY KEY,
                     the_user INTEGER REFERENCES users(userID),
+                    the_category INTEGER REFERENCES category(categoryID),
                     the_budget INTEGER REFERENCES budget(budgetID),
                     account_name TEXT,
                     account_type INTEGER,
@@ -123,6 +132,7 @@ class database():
                     transaction_id INTEGER PRIMARY KEY,
                     budget_accounts_id INTEGER REFERENCES budget_accounts(budget_accounts_id),
                     the_user INTEGER REFERENCES users(userID),
+                    the_category INTEGER REFERENCES category(categoryID),
                     vendor_id INTEGER REFERENCES vendor(vendor_id),
                     transaction_type INTEGER,
                     amount REAL,
