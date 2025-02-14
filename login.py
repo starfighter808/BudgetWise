@@ -31,7 +31,6 @@ class Login:
 
     def pullUser(self, user: str, hash: str):
         userID = self.user_manager.get_user_id(user, hash)
-        print(userID)
         return userID
 
 
