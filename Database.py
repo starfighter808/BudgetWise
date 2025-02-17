@@ -43,21 +43,8 @@ class database():
                     updatedAT DATETIME DEFAULT CURRENT_TIMESTAMP,
                     weekly_reports INTEGER,
                     monthly_reports INTEGER,
-                    yearly_reports INTEGER
-                )''')
-
-        # Create security_questions table
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS security_questions (
-                    questionID INTEGER PRIMARY KEY,
-                    question_text TEXT
-                )''')
-
-        # Create user_security_questions table with references to users and security_questions tables
-        self.cursor.execute('''CREATE TABLE IF NOT EXISTS user_security_questions (
-                    answer_id INTEGER PRIMARY KEY,
-                    the_user INTEGER REFERENCES users(userID),
-                    the_question INTEGER REFERENCES security_questions(questionID),
-                    answer TEXT
+                    yearly_reports INTEGER,
+                    security_question BLOB
                 )''')
 
         # Create budget table with reference to users table

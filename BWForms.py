@@ -145,6 +145,7 @@ class SecurityQuestionsDialog(ft.AlertDialog):
 
     def save_security_questions(self, e):
         # Implement your save logic here
+        
         print("Security questions saved")
         self.open = False
         self.update()
