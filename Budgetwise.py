@@ -2,8 +2,8 @@ import flet as ft
 import atexit
 from Database import database
 from BWScenes import WelcomeScene, DashboardScene
-from BWForms import LoginScene, SignInScene, SecurityQuestionsDialog
-from BWMenu import MenuBar        
+from BWForms import LoginScene, SignInScene, SecurityQuestionsForm, AccountCreationForm
+from BWMenu import MenuBar     
         
     
 
@@ -34,63 +34,87 @@ def main(page: ft.Page):
     #____________________________________________________________________
 
     page.title = "Welcome to BudgetWise"
-    page.window_width = 1280
-    page.window_height = 960
+    page.window_width = 1440
+    page.window_height = 1080
 
-    menu_visible = False
+    def show_form(form):
+        login_form.open = form == login_form
+        signin_form.open = form == signin_form
+        security_questions_form.open = form == security_questions_form
+        account_creation_form.open = form == account_creation_form
+        page.update()
 
     def toggle_menu(e):
-        nonlocal menu_visible
-        menu_visible = not menu_visible
-        scenes[1].toggle_menu()
+        menu.visible = not menu.visible
+        menu.width = 200 if menu.visible else 0  # Adjust the width of the menu
         page.update()
 
     def change_scene(scene_index):
         if 0 <= scene_index < len(scenes):
             scene_content.content = scenes[scene_index].get_content()
-            toggle_button.disabled = scene_index == 0  # Disable toggle button for scene 0
+            toggle_button.disabled = scene_index == 0
             page.update()
         else:
             print(f"Error: Scene index {scene_index} is out of range.")
 
-    login_form = LoginScene(change_scene_callback=change_scene)
-    signin_form = SignInScene()
-
+    # Define show functions
     def show_login_form():
         print("Showing login form")
-        login_form.open = True
-        signin_form.open = False
-        page.update()
+        show_form(login_form)
 
     def show_signin_form():
         print("Showing sign-in form")
-        signin_form.open = True
-        login_form.open = False
-        page.update()
+        show_form(signin_form)
 
+    def show_security_questions_form():
+        print("Showing security questions form")
+        show_form(security_questions_form)
+
+    def show_account_creation_form():
+        print("Showing account creation form")
+        show_form(account_creation_form)
+
+    # Initialize all forms with necessary arguments
+    login_form = LoginScene(change_scene_callback=change_scene)
+    signin_form = SignInScene(change_scene_callback=change_scene, show_security_questions_form=show_security_questions_form)
+    security_questions_form = SecurityQuestionsForm(change_scene_callback=change_scene, show_account_creation_form=show_account_creation_form)
+    account_creation_form = AccountCreationForm(change_scene_callback=change_scene)
+
+    # Set up scenes
     scenes = [
         WelcomeScene(change_scene_callback=change_scene, show_login_form=show_login_form, show_signin_form=show_signin_form),
         DashboardScene(change_scene_callback=change_scene, p_width=page.window_width, p_height=page.window_height),
     ]
 
     menu = MenuBar(change_scene_callback=change_scene)
+    menu.visible = False  # Start with the menu hidden
+    menu.width = 0  # Start with the menu width set to 0
 
     toggle_button = ft.ElevatedButton("Toggle Menu", on_click=toggle_menu, disabled=True)  # Initially disabled
     scene_content = ft.Container(content=scenes[0].get_content(), expand=True)
 
-    page.overlay.append(login_form)
-    page.overlay.append(signin_form)
-    page.overlay.append(signin_form.security_questions_dialog)  # Add security questions dialog to overlay
+    # Add forms to the overlay, keeping them closed initially
+    page.overlay.extend([login_form, signin_form, security_questions_form, account_creation_form])
+
+    # Ensure all forms are closed initially
+    login_form.open = False
+    signin_form.open = False
+    security_questions_form.open = False
+    account_creation_form.open = False
+
+    # Create a container that includes the menu bar and the main content
+    main_container = ft.Row(
+        controls=[
+            menu,  # Menu bar
+            scene_content  # Main content
+        ],
+        spacing=0,
+        expand=True
+    )
 
     page.add(
         ft.Row([toggle_button]),
-        ft.Stack(
-            controls=[
-                scene_content,
-                menu,
-            ],
-            expand=True
-        )
+        main_container
     )
 
     page.update()
