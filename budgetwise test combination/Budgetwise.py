@@ -3,19 +3,18 @@ import atexit
 from Database import database
 from BWScenes import WelcomeScene, DashboardScene
 from BWForms import LoginScene, SignInScene, SecurityQuestionsDialog
-from BWMenu import MenuBar 
-from installation  import Installation
-import os  
+from BWMenu import MenuBar
+from installation import Installation
+import os
+from login import Login
 
-
-
-def main( page: ft.Page):
+def main(page: ft.Page):
 
     installer = Installation()
     app_folder = installer.get_app_folder()
     db_path = os.path.join(app_folder, installer.db_filename)
     
-    # Check if the database already exists
+    # Check if the database already exists. If not, create it.
     if not os.path.exists(db_path):
         print("Database not found. Creating a new encrypted database...")
         installer.create_encrypted_database()
@@ -24,29 +23,31 @@ def main( page: ft.Page):
         print("Database already exists. Starting application...")
 
     # DO NOT TOUCH THIS CODE. APP BREAKS
-    BudgetDb = database('BudgetWise')
+    BudgetDb = database()
 
     def on_exit():
-    
         print("App is attempting to close")
-        BudgetDb.close_db
-    
-        if BudgetDb.check_connection != True:
+
+        # Ensure the database connection is closed in the same thread
+        if BudgetDb.check_connection():
+            BudgetDb.close_db()
+
+        if BudgetDb.check_connection() != True:
             print("Database disconnected")
         else:
             print("Error")
-        
         return True
+
 
     # Register the on_exit function to be called on exit
     atexit.register(on_exit)
     
-    if BudgetDb.check_connection:
+    if BudgetDb.check_connection():
         print("We are connected")
     else:
         print("Not Connected")
     
-    #____________________________________________________________________
+    # ____________________________________________________________________
 
     page.title = "Welcome to BudgetWise"
     page.window_width = 1280
