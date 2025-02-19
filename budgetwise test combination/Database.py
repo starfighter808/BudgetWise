@@ -8,14 +8,14 @@ class database:
     _instance = None  
     _lock = threading.Lock()
 
-    def __new__(cls, name):
+    def __new__(cls):
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super(database, cls).__new__(cls)
                 cls._instance.__conn = None
                 cls._instance.__cursor = None
                 cls._instance.installer = Installation()
-                cls._instance.db_filename = f"{name}.db"
+                cls._instance.db_filename = "BudgetWise.db"
                 cls._instance.open_db()
             return cls._instance
 
@@ -47,11 +47,11 @@ class database:
             raise Exception("Cursor is not initialized. Ensure the database connection is opened first.")
         return self.__cursor
 
-    def commit(self):
+    def commit_db(self):
         if self.__conn:
             self.__conn.commit()
 
-    def close(self):
+    def close_db(self):
         with self._lock:
             if self.__conn:
                 self.__conn.commit()
