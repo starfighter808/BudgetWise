@@ -1,6 +1,24 @@
 **Important**:
 **All required libraries must be installed for the code to work. This is not an executable (.exe) file.**
 
+You will need:
+
+**Flet**
+
+    `pip install flet`
+    
+Latest version:
+
+    `pip install --upgrade flet`
+
+**sqlcipher3-wheels**
+
+    `pip install sqlcipher3-wheels`
+
+**keyring**
+
+    `pip install keyring`
+
 The BudgetWise test combination folder is the first attempt at gathering all the code together and implementing it as a unified system. To run the code, simply execute the BudgetWise.py program.
 
 When you run BudgetWise.py, it will:
