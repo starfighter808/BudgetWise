@@ -7,7 +7,7 @@ You will need:
 
     pip install flet
     
-Latest version:
+You may need the latest version:
 
     pip install --upgrade flet
 
