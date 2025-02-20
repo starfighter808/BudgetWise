@@ -5,19 +5,19 @@ You will need:
 
 **Flet**
 
-    `pip install flet`
+    pip install flet
     
 Latest version:
 
-    `pip install --upgrade flet`
+    pip install --upgrade flet
 
 **sqlcipher3-wheels**
 
-    `pip install sqlcipher3-wheels`
+    pip install sqlcipher3-wheels
 
 **keyring**
 
-    `pip install keyring`
+    pip install keyring
 
 The BudgetWise test combination folder is the first attempt at gathering all the code together and implementing it as a unified system. To run the code, simply execute the BudgetWise.py program.
 
