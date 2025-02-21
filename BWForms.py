@@ -229,3 +229,87 @@ class AccountCreationForm(ft.AlertDialog):
         
         # Call back to the dashboard scene
         self.change_scene_callback(1) 
+
+
+class BudgetCreationForm(ft.AlertDialog):
+    def __init__(self, change_scene_callback, add_slider_callback, remove_account_callback):
+        super().__init__()
+        self.change_scene_callback = change_scene_callback
+        self.add_slider_callback = add_slider_callback
+        self.remove_account_callback = remove_account_callback
+        self.title = ft.Text("Create Accounts", size=24, weight="bold")
+        self.account_name_field = ft.TextField(label="Account name:")
+        self.amount_field = ft.TextField(label="Amount:")
+        self.create_account_button = ft.TextButton("Create Account", on_click=self.submit_form)
+        self.finish_button = ft.TextButton("Finish", on_click=self.close_form)
+
+        self.summary_box = ft.Column()
+
+        self.content = ft.Container(
+            content=ft.Row([
+                ft.Column([
+                    self.title,
+                    self.account_name_field,
+                    self.amount_field,
+                    self.create_account_button,
+                    ft.Container(
+                        content=ft.Column([
+                            ft.Text("Budget Accounts:", size=18, weight="bold"),
+                            self.summary_box,
+                        ]),
+                        padding=10,
+                        border=ft.Border(
+                            left=ft.BorderSide(1, "black"),
+                            top=ft.BorderSide(1, "black"),
+                            right=ft.BorderSide(1, "black"),
+                            bottom=ft.BorderSide(1, "black")
+                        ),
+                        border_radius=ft.BorderRadius(
+                            top_left=5,
+                            top_right=5,
+                            bottom_left=5,
+                            bottom_right=5
+                        ),
+                        width=400,
+                        height=300,
+                    ),
+                ], width=450),
+            ]),
+            width=900,
+            padding=10
+        )
+
+        self.actions = [self.finish_button]
+
+    def submit_form(self, e):
+        account_name = self.account_name_field.value
+        try:
+            amount = float(self.amount_field.value)
+        except ValueError:
+            print("Error: Amount must be a valid number.")
+            return
+
+        if account_name:
+            self.summary_box.controls.append(ft.Text(f"{account_name}: ${amount:.2f}"))
+            self.summary_box.update()
+            print(f"Submitting form with account name: {account_name} and amount: {amount}")
+            self.add_slider_callback(account_name, amount)
+            # Clear the fields after submission
+            self.account_name_field.value = ""
+            self.amount_field.value = ""
+            self.account_name_field.update()
+            self.amount_field.update()
+        else:
+            print("Error: Account name must be provided.")
+
+    def close_form(self, e):
+        self.open = False
+        self.page.update()
+        print("Closing form and updating scene")
+        self.change_scene_callback(1)
+        
+    def remove_account(self, account_name):
+        print(f"Removing account from budget form: {account_name}")
+        self.summary_box.controls = [control for control in self.budget_creation_form.summary_box.controls if account_name not in control.value]
+        self.summary_box.update()
+
