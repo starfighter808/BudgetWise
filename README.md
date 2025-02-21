@@ -19,6 +19,10 @@ You may need the latest version:
 
     pip install keyring
 
+**argon2**
+
+     pip install argon2-cffi
+
 The BudgetWise test combination folder is the first attempt at gathering all the code together and implementing it as a unified system. To run the code, simply execute the BudgetWise.py program.
 
 When you run BudgetWise.py, it will:
