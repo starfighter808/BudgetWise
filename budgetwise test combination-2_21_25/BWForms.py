@@ -113,11 +113,26 @@ class SecurityQuestionsForm(ft.AlertDialog):
         self.change_scene_callback = change_scene_callback
         self.show_account_creation_form = show_account_creation_form
         self.questions = [
-            "What is your mother's maiden name?",
-            "What was your first pet's name?",
-            "What is your favorite book?",
+            "What was the name of your first pet?",
+            "What is your mother’s maiden name?",
+            "What was the make and model of your first car?",
+            "What is the name of the town where you were born?",
+            "What was your childhood best friend’s name?",
+            "What is the name of your favorite teacher?",
             "What is the name of your first school?",
-            "What is your favorite movie?"
+            "What is the name of your favorite childhood book?",
+            "What was the name of the first company you worked for?",
+            "What is your favorite movie?",
+            "What is your favorite food?",
+            "What is the middle name of your oldest sibling?",
+            "What was your first phone number?",
+            "Where did you go on your first vacation?",
+            "What was the name of your first stuffed animal?",
+            "What is the name of your first love?",
+            "What is the street name of your childhood home?",
+            "What is the name of the hospital where you were born?",
+            "What is your father’s middle name?",
+            "What was the first concert you attended?",
         ]
 
         self.question1 = ft.Dropdown(options=[ft.dropdown.Option(question) for question in self.questions], on_change=self.update_dropdowns)
@@ -288,7 +303,8 @@ class BudgetCreationForm(ft.AlertDialog):
                 ], width=450),
             ]),
             width=900,
-            padding=10
+            padding=10,
+            bgcolor="#0d0d10" 
         )
 
         self.actions = [self.finish_button]

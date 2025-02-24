@@ -22,7 +22,7 @@ class MenuBar(ft.Column):
                         ],
                         spacing=5
                     ),
-                    on_click=lambda e: change_scene_callback(4)
+                    on_click=lambda e: change_scene_callback(2)
                 ),
                 ft.ElevatedButton(
                     content=ft.Row(
@@ -32,7 +32,7 @@ class MenuBar(ft.Column):
                         ],
                         spacing=5
                     ),
-                    on_click=lambda e: change_scene_callback(5)
+                    on_click=lambda e: change_scene_callback(3)
                 ),
                 ft.ElevatedButton(
                     content=ft.Row(
@@ -42,7 +42,7 @@ class MenuBar(ft.Column):
                         ],
                         spacing=5
                     ),
-                    on_click=lambda e: change_scene_callback(6)
+                    on_click=lambda e: change_scene_callback(4)
                 ),
                 ft.ElevatedButton(
                     content=ft.Row(
@@ -52,7 +52,7 @@ class MenuBar(ft.Column):
                         ],
                         spacing=5
                     ),
-                    on_click=lambda e: change_scene_callback(7)
+                    on_click=lambda e: change_scene_callback(5)
                 ),
                 ft.ElevatedButton(
                     content=ft.Row(
@@ -62,7 +62,7 @@ class MenuBar(ft.Column):
                         ],
                         spacing=5
                     ),
-                    on_click=lambda e: change_scene_callback(8)
+                    on_click=lambda e: change_scene_callback(6)
                 ),
                 ft.ElevatedButton(
                     content=ft.Row(
@@ -72,7 +72,7 @@ class MenuBar(ft.Column):
                         ],
                         spacing=5
                     ),
-                    on_click=lambda e: change_scene_callback(9)
+                    on_click=lambda e: change_scene_callback(7)
                 )
             ],
             width=150,
