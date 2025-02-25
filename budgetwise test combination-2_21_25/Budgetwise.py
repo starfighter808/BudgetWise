@@ -1,8 +1,11 @@
 import flet as ft
 import atexit
 from Database import database
-from BWScenes import WelcomeScene, DashboardScene
+from BWScenes import WelcomeScene
+from BWDash import DashboardScene
+from BWAccounts import AccountScene
 from BWForms import LoginScene, SignInScene, SecurityQuestionsForm, AccountCreationForm, BudgetCreationForm
+from DataManager import DataManager
 from installation import Installation
 from BWMenu import MenuBar    
 import os
@@ -66,11 +69,12 @@ def main(page: ft.Page):
 
     def change_scene(scene_index):
         if 0 <= scene_index < len(scenes):
-            scene_content.content = scenes[scene_index].get_content()
+            new_scene = scenes[scene_index]
+            if hasattr(new_scene, "refresh_ui"):  # If the scene has a refresh method, call it
+                new_scene.refresh_ui()
+            scene_content.content = new_scene.get_content()
             toggle_button.disabled = scene_index == 0
             page.update()
-        else:
-            print(f"Error: Scene index {scene_index} is out of range.")
 
     # Define show functions
     def show_login_form():
@@ -88,36 +92,46 @@ def main(page: ft.Page):
     def show_account_creation_form():
         print("Showing account creation form")
         show_form(account_creation_form)
+    
     def show_budget_creation_form():
         print("Showing budget creation form")
+        budget_creation_form.on_close = scenes[1].on_budget_form_closed  # ✅ Ensure it refreshes the dashboard
         show_form(budget_creation_form)
+
+    def on_budget_form_closed(self, e=None):
+        """Called when budget form is closed to refresh accounts summary."""
+        print("🔄 Budget form closed. Refreshing dashboard...")
+        self.refresh_accounts_summary()  # ✅ Refresh UI after form is closed
+        self.scrollable_right_container.update()  # ✅ Ensure UI updates
 
     # Initialize all forms with necessary arguments
     login_form = LoginScene(change_scene_callback=change_scene)
     signin_form = SignInScene(change_scene_callback=change_scene, show_security_questions_form=show_security_questions_form)
     security_questions_form = SecurityQuestionsForm(change_scene_callback=change_scene, show_account_creation_form=show_account_creation_form)
     account_creation_form = AccountCreationForm(change_scene_callback=change_scene)
+    data_storage = DataManager()
     budget_creation_form = BudgetCreationForm(
         change_scene_callback=change_scene,
-        add_slider_callback=None,  # Temporarily set to None until dashboard_scene is created
-        remove_account_callback=None  # Temporarily set to None until dashboard_scene is created
+        data_manager=data_storage
     )
-
-    dashboard_scene = DashboardScene(
-        change_scene_callback=change_scene,
-        p_width=page.window_width,
-        p_height=page.window_height,
-        show_budget_creation_form=show_budget_creation_form,
-        budget_creation_form=budget_creation_form  # Pass the budget creation form to the dashboard scene
-    )
-
-    budget_creation_form.add_slider_callback = dashboard_scene.add_slider
-    budget_creation_form.remove_account_callback = dashboard_scene.form_manager.remove_account
 
     # Set up scenes
     scenes = [
         WelcomeScene(change_scene_callback=change_scene, show_login_form=show_login_form, show_signin_form=show_signin_form),
-        dashboard_scene,
+        DashboardScene(
+            change_scene_callback=change_scene,
+            p_width=page.window_width,
+            p_height=page.window_height,
+            show_budget_creation_form=show_budget_creation_form,
+            budget_creation_form=budget_creation_form,  # Pass the budget creation form to the dashboard scene
+            data_manager = data_storage
+        ),
+        AccountScene(
+            change_scene_callback = change_scene, 
+            p_width = page.window_width, 
+            p_height = page.window_height, 
+            data_manager = data_storage
+        )
     ]
 
     menu = MenuBar(change_scene_callback=change_scene)

@@ -259,11 +259,11 @@ class AccountCreationForm(ft.AlertDialog):
         self.change_scene_callback(1) 
 
 class BudgetCreationForm(ft.AlertDialog):
-    def __init__(self, change_scene_callback, add_slider_callback, remove_account_callback):
+    def __init__(self, change_scene_callback, data_manager):
         super().__init__()
         self.change_scene_callback = change_scene_callback
-        self.add_slider_callback = add_slider_callback
-        self.remove_account_callback = remove_account_callback
+        self.data_manager = data_manager
+        
         self.title = ft.Text("Create Accounts", size=24, weight="bold")
         self.account_name_field = ft.TextField(label="Account name:")
         self.amount_field = ft.TextField(label="Amount:")
@@ -281,22 +281,17 @@ class BudgetCreationForm(ft.AlertDialog):
                     self.create_account_button,
                     ft.Container(
                         content=ft.Column([
-                            ft.Text("Budget Accounts:", size=18, weight="bold"),
+                            ft.Text("Budget Accounts:", size=18, weight="bold", color="Grey"),
                             self.summary_box,
                         ]),
                         padding=10,
                         border=ft.Border(
-                            left=ft.BorderSide(1, "black"),
-                            top=ft.BorderSide(1, "black"),
-                            right=ft.BorderSide(1, "black"),
-                            bottom=ft.BorderSide(1, "black")
+                            left=ft.BorderSide(1, "Grey"),
+                            top=ft.BorderSide(1, "Grey"),
+                            right=ft.BorderSide(1, "Grey"),
+                            bottom=ft.BorderSide(1, "Grey")
                         ),
-                        border_radius=ft.BorderRadius(
-                            top_left=5,
-                            top_right=5,
-                            bottom_left=5,
-                            bottom_right=5
-                        ),
+                        border_radius=5,
                         width=400,
                         height=300,
                     ),
@@ -304,12 +299,13 @@ class BudgetCreationForm(ft.AlertDialog):
             ]),
             width=900,
             padding=10,
-            bgcolor="#0d0d10" 
+            bgcolor="#0d0d10"
         )
 
         self.actions = [self.finish_button]
-
+        
     def submit_form(self, e):
+        """Handles creating a new account."""
         account_name = self.account_name_field.value
         try:
             amount = float(self.amount_field.value)
@@ -318,11 +314,8 @@ class BudgetCreationForm(ft.AlertDialog):
             return
 
         if account_name:
-            self.summary_box.controls.append(ft.Text(f"{account_name}: ${amount:.2f}"))
-            self.summary_box.update()
-            print(f"Submitting form with account name: {account_name} and amount: {amount}")
-            self.add_slider_callback(account_name, amount)
-            # Clear the fields after submission
+            self.data_manager.add_account(account_name, amount)
+            self.refresh_summary()
             self.account_name_field.value = ""
             self.amount_field.value = ""
             self.account_name_field.update()
@@ -330,13 +323,37 @@ class BudgetCreationForm(ft.AlertDialog):
         else:
             print("Error: Account name must be provided.")
 
+    def refresh_summary(self):
+        """Refreshes the summary box with accounts and action buttons."""
+        self.summary_box.controls.clear()
+        for account, value in self.data_manager.list_accounts().items():  # ✅ Uses `.items()` for dict
+            self.summary_box.controls.append(
+                ft.Row([
+                    ft.Text(f"{account}: ${value:.2f}", expand=True),
+                    ft.IconButton(ft.icons.EDIT, on_click=lambda e, a=account: self.edit_account(a)),
+                    ft.IconButton(ft.icons.DELETE, on_click=lambda e, a=account: self.delete_account(a)),
+                ])
+            )
+        self.summary_box.update()
+
+    def edit_account(self, account_name):
+        """Fills the fields with selected account info for editing."""
+        if account_name in self.data_manager.accounts:  # ✅ Check if account exists
+            self.account_name_field.value = account_name
+            self.amount_field.value = str(self.data_manager.accounts[account_name])  # ✅ Direct dict lookup
+            self.account_name_field.update()
+            self.amount_field.update()
+
+    def delete_account(self, account_name):
+        """Deletes an account and updates the summary."""
+        if account_name in self.data_manager.accounts:
+            self.data_manager.remove_account(account_name)
+            self.refresh_summary()
+        else:
+            print("Error: Account not found.")
+
     def close_form(self, e):
+        """Handles closing the form."""
         self.open = False
         self.page.update()
-        print("Closing form and updating scene")
         self.change_scene_callback(1)
-        
-    def remove_account(self, account_name):
-        print(f"Removing account from budget form: {account_name}")
-        self.summary_box.controls = [control for control in self.budget_creation_form.summary_box.controls if account_name not in control.value]
-        self.summary_box.update()
