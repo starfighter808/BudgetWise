@@ -1,16 +1,4 @@
-import flet as ft
-import atexit
-from Database import database
-from BWScenes import WelcomeScene
-from BWDash import DashboardScene
-from BWAccounts import AccountScene
-from BWForms import LoginScene, SignInScene, SecurityQuestionsForm, AccountCreationForm, BudgetCreationForm
-from DataManager import DataManager
-from installation import Installation
-from BWHistory import HistoryScene
-from BWMenu import MenuBar    
-import os
-from login import Login
+from BWImports import *
         
 def main(page: ft.Page):
 
@@ -133,6 +121,12 @@ def main(page: ft.Page):
             data_manager = data_storage
         ),
         HistoryScene(
+            change_scene_callback = change_scene, 
+            p_width = page.window_width, 
+            p_height = page.window_height,
+            data_manager = data_storage
+        ),
+        TransactionScene(
             change_scene_callback = change_scene, 
             p_width = page.window_width, 
             p_height = page.window_height,

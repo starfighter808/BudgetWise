@@ -151,14 +151,19 @@ class DashboardScene(ft.Container):
                     value=f"{round(value)}", width=80,
                     on_blur=lambda e, a=account: self.update_text_value(e, a)
                 )
-                self.sliders[account] = (slider, text_field)
+                delete_button = ft.IconButton(
+                    icon=ft.icons.DELETE, 
+                    on_click=lambda e, a=account: self.delete_account(a)
+                )
+                self.sliders[account] = (slider, text_field, delete_button)
             else:
-                slider, text_field = self.sliders[account]
+                slider, text_field, delete_button = self.sliders[account]
                 slider.value = round(value)
                 slider.label = f"{account}: {round(value)}"
                 text_field.value = f"{round(value)}"
 
-            self.slider_container.controls.append(ft.Row([slider, text_field]))
+            # Add the slider, text field, and delete button to the row
+            self.slider_container.controls.append(ft.Row([slider, text_field, delete_button]))
 
         self.slider_container.update()
         self.refresh_left_table()  # ✅ Update daily spending when sliders change
@@ -170,6 +175,13 @@ class DashboardScene(ft.Container):
         
         self._slider_timer = threading.Timer(0.2, lambda: self.update_slider_value(e, account))
         self._slider_timer.start()
+    
+    def delete_account(self, account):
+        """Deletes an account from DataManager and refreshes UI."""
+        self.data_manager.remove_account(account)  # Assuming delete_account method is in DataManager
+        self.refresh_sliders()  # Refresh the sliders
+        self.refresh_itemized_list()  # Refresh the itemized list
+        self.refresh_left_table()  # Update the left table (if necessary)
 
     def update_text_value(self, e, account):
         """Update the slider when the text field loses focus."""
@@ -205,7 +217,7 @@ class DashboardScene(ft.Container):
         
     def calculate_daily_value(self):
         """Calculates the sum of all slider values to update 'Daily' spending."""
-        total_daily = sum(slider.value for slider, _ in self.sliders.values())
+        total_daily = sum(slider.value for slider, _, _ in self.sliders.values())  # Unpack slider only
         return total_daily
 
     def show_budget_form(self, e):

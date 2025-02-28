@@ -127,7 +127,7 @@ class AccountScene(ft.Container):
     def delete_account(self, account):
         """Deletes an account and refreshes the table."""
         self.data_manager.remove_account(account)
-        self.refresh_table()
+        self.refresh_ui()
 
     def get_content(self):
         """Returns the main scene content."""
