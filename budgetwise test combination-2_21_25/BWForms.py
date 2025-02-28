@@ -303,6 +303,8 @@ class BudgetCreationForm(ft.AlertDialog):
         )
 
         self.actions = [self.finish_button]
+
+        self.data_manager.add_listener(self.refresh_summary)
         
     def submit_form(self, e):
         """Handles creating a new account."""
@@ -315,7 +317,7 @@ class BudgetCreationForm(ft.AlertDialog):
 
         if account_name:
             self.data_manager.add_account(account_name, amount)
-            self.refresh_summary()
+            self.refresh_summary()  # Refresh summary after adding the account
             self.account_name_field.value = ""
             self.amount_field.value = ""
             self.account_name_field.update()
@@ -324,23 +326,23 @@ class BudgetCreationForm(ft.AlertDialog):
             print("Error: Account name must be provided.")
 
     def refresh_summary(self):
-        """Refreshes the summary box with accounts and action buttons."""
-        self.summary_box.controls.clear()
-        for account, value in self.data_manager.list_accounts().items():  # ✅ Uses `.items()` for dict
-            self.summary_box.controls.append(
-                ft.Row([
-                    ft.Text(f"{account}: ${value:.2f}", expand=True),
-                    ft.IconButton(ft.icons.EDIT, on_click=lambda e, a=account: self.edit_account(a)),
-                    ft.IconButton(ft.icons.DELETE, on_click=lambda e, a=account: self.delete_account(a)),
-                ])
-            )
-        self.summary_box.update()
+            """Refreshes the summary box with accounts and action buttons."""
+            self.summary_box.controls.clear()
+            for account, value in self.data_manager.list_accounts().items():  # ✅ Uses `.items()` for dict
+                self.summary_box.controls.append(
+                    ft.Row([
+                        ft.Text(f"{account}: ${value:.2f}", expand=True),
+                        ft.IconButton(ft.icons.EDIT, on_click=lambda e, a=account: self.edit_account(a)),
+                        ft.IconButton(ft.icons.DELETE, on_click=lambda e, a=account: self.delete_account(a)),
+                    ])
+                )
+            self.summary_box.update()
 
     def edit_account(self, account_name):
         """Fills the fields with selected account info for editing."""
-        if account_name in self.data_manager.accounts:  # ✅ Check if account exists
+        if account_name in self.data_manager.accounts:  # Check if account exists
             self.account_name_field.value = account_name
-            self.amount_field.value = str(self.data_manager.accounts[account_name])  # ✅ Direct dict lookup
+            self.amount_field.value = str(self.data_manager.accounts[account_name])  # Direct dict lookup
             self.account_name_field.update()
             self.amount_field.update()
 
@@ -348,7 +350,7 @@ class BudgetCreationForm(ft.AlertDialog):
         """Deletes an account and updates the summary."""
         if account_name in self.data_manager.accounts:
             self.data_manager.remove_account(account_name)
-            self.refresh_summary()
+            self.refresh_summary()  # Refresh summary after deleting the account
         else:
             print("Error: Account not found.")
 

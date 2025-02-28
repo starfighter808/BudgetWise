@@ -1,13 +1,11 @@
 import flet as ft
 
-class AccountScene(ft.Container):
-    def __init__(self, change_scene_callback, p_width, p_height, show_budget_creation_form, budget_creation_form, data_manager):
+class HistoryScene(ft.Container):
+    def __init__(self, change_scene_callback, p_width, p_height, data_manager):
         super().__init__()
         self.change_scene_callback = change_scene_callback
         self.width = p_width
         self.height = p_height
-        self.show_budget_creation_form = show_budget_creation_form
-        self.budget_creation_form = budget_creation_form
         self.data_manager = data_manager
         self.sliders = {}
         self.text_fields = {}
@@ -38,7 +36,6 @@ class AccountScene(ft.Container):
         self.refresh_table()  # Initial load
 
     def refresh_ui(self):
-        """Refreshes all dynamic elements when the scene is switched to."""
         self.refresh_table()
 
     def refresh_table(self):

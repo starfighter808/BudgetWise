@@ -15,11 +15,7 @@ class DashboardScene(ft.Container):
         self.data_manager = data_manager
         self.sliders = {}
         self.text_fields = {}
-
-        # Register as a listener for DataManager changes
-        self.data_manager.add_listener(self.refresh_itemized_list)
-        self.data_manager.add_listener(self.refresh_sliders)
-        self.data_manager.add_listener(self.refresh_left_table)
+        self.bgcolor="#0d0d10"
 
          # **Left Table - Dynamic Values**
         self.daily_value_text = ft.Text("Daily: $0.00")  # Starts at 0
@@ -91,8 +87,19 @@ class DashboardScene(ft.Container):
 
     def did_mount(self):
         """Called when the dashboard is mounted to register for data updates."""
+        self.data_manager.add_listener(self.refresh_itemized_list)
+        self.data_manager.add_listener(self.refresh_sliders)
+        self.data_manager.add_listener(self.refresh_left_table)
+
         self.refresh_itemized_list()
         self.refresh_sliders()
+        self.refresh_left_table()
+    
+    def refresh_ui(self):
+        """Refreshes all dynamic elements when the scene is switched to."""
+        self.refresh_itemized_list()
+        self.refresh_sliders()
+        self.refresh_left_table()
     
     def refresh_left_table(self):
         """Updates the left container dynamically based on DataManager."""
@@ -109,38 +116,41 @@ class DashboardScene(ft.Container):
 
     def refresh_itemized_list(self):
         """Updates the middle container whenever DataManager changes."""
+        if not self.middle_container.page:
+            return  # Prevent update if not added to the page
+
         self.middle_container.controls.clear()
         self.middle_container.controls.append(ft.Text("Itemized List", size=18, weight="bold"))
 
-        for account, value in self.data_manager.list_accounts().items():  # ✅ Loop through dictionary
+        for account, value in self.data_manager.list_accounts().items():
             self.middle_container.controls.append(ft.Text(f"{account}: ${value:.2f}"))
 
         self.middle_container.update()  # Refresh UI
     
     def refresh_sliders(self):
         """Dynamically updates the sliders when DataManager changes."""
+        if not self.slider_container.page:
+            return  # Prevent update if not added to the page
+
         self.slider_container.controls.clear()
         self.slider_container.controls.append(ft.Text("Adjust Account Allocations", size=18, weight="bold"))
 
         for account, value in self.data_manager.list_accounts().items():
             max_value = value  # Cap is the inputted amount
 
-            # Ensure the slider is properly initialized
             if account not in self.sliders or not isinstance(self.sliders[account], tuple):
                 slider = ft.Slider(
-                min=0, 
-                max=max_value, 
-                value=round(value),
-                divisions=max_value,  # Ensures snapping to integers
-                label=f"{account}: {round(value)}",
-                on_change=lambda e, a=account: self.debounced_update_slider_value(e, a)  # ✅ Delayed update
-            )
+                    min=0, 
+                    max=max_value, 
+                    value=round(value),
+                    divisions=max_value,  # Ensures snapping to integers
+                    label=f"{account}: {round(value)}",
+                    on_change=lambda e, a=account: self.debounced_update_slider_value(e, a)  
+                )
                 text_field = ft.TextField(
                     value=f"{round(value)}", width=80,
                     on_blur=lambda e, a=account: self.update_text_value(e, a)
                 )
-
-                # ✅ Store as a tuple
                 self.sliders[account] = (slider, text_field)
             else:
                 slider, text_field = self.sliders[account]
@@ -148,7 +158,6 @@ class DashboardScene(ft.Container):
                 slider.label = f"{account}: {round(value)}"
                 text_field.value = f"{round(value)}"
 
-            # Add both the slider and text field
             self.slider_container.controls.append(ft.Row([slider, text_field]))
 
         self.slider_container.update()
