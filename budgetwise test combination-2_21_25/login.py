@@ -1,11 +1,11 @@
 from argon2 import PasswordHasher, exceptions
 from user import User
-from Database import database
+from Database import Database
 
 class Login:
     def __init__(self):
         self.ph = PasswordHasher()
-        self.db = database()  
+        self.db = Database()  
         self.user_manager = User() 
 
     def verify_password(self, stored_hash, provided_password):

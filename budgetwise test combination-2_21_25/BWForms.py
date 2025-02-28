@@ -3,7 +3,7 @@ from login import Login
 import json
 
 class LoginScene(ft.AlertDialog):
-    def __init__(self, change_scene_callback):
+    def __init__(self, change_scene_callback, user_instance = None):
         self.change_scene_callback = change_scene_callback
         # Create username and password fields
         self.Login_text = ft.Text("Log in", size=100, color="grey", weight="bold")
@@ -12,7 +12,7 @@ class LoginScene(ft.AlertDialog):
         self.login_button = ft.ElevatedButton(text="Login", on_click=self.login)  # Update the on_click method
         self.error_message = ft.Text("", color="red")
 
-        self.login_manager = Login()
+        self.user_manager = user_instance
 
         # Create a column with the fields and button, aligned to the center
         self.login_column = ft.Column(
@@ -36,29 +36,28 @@ class LoginScene(ft.AlertDialog):
         super().__init__(content=centered_container)
 
     def login(self, e):
-        user_input_username = self.username_field.value
-        user_input_password = self.password_field.value
-
-        print("Login button clicked")  # Debugging print statement
-        print(f"Username: {user_input_username}, Password: {user_input_password}")  # Debugging print statement
-
-        userID = self.login_manager.login(user_input_username, user_input_password)
-
-        if userID:
+        """
+        Handles login logic. If credentials are correct, transitions to the Dashboard.
+        
+        Arguments:
+            e: The event triggered by the button click.
+        """
+        # Verify the entered username and password
+        if self.user_manager.verify_password(self.username_field.value.strip(), self.password_field.value.strip()):
             print("Login successful, transitioning to Dashboard...")
             self.open = False  # Close the login form
-            self.update()  # Ensure the UI updates to reflect changes
-            self.change_scene_callback(1)  # Index of Dashboard scene
+            self.update()  # Ensure the UI is updated
+            self.change_scene_callback(1)  # Move to the next scene (Dashboard)
         else:
             print("Invalid login attempt")
-            self.error_message.value = "Invalid username or password."
-            self.error_message.update()  # Ensure the UI updates
+            self.error_message.value = "Invalid username or password."  # Show error message
+            self.error_message.update()  # Update error message UI
 
         self.update()  # Ensure the UI is updated
 
 
 class SignInScene(ft.AlertDialog):
-    def __init__(self, change_scene_callback, show_security_questions_form):
+    def __init__(self, change_scene_callback, show_security_questions_form, user_instance = None):
         self.change_scene_callback = change_scene_callback
         self.show_security_questions_form = show_security_questions_form
         signup_text = ft.Text("Sign-up", size=100, color="grey", weight="bold")
@@ -67,7 +66,7 @@ class SignInScene(ft.AlertDialog):
         self.confPassword_field = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, width=300)
         self.error_message = ft.Text("", color="red")
 
-        self.login_manager = Login()
+        self.user_manager = user_instance
 
         signup_button = ft.ElevatedButton(text="Next", on_click=self.validate_password)
 
@@ -90,28 +89,38 @@ class SignInScene(ft.AlertDialog):
         super().__init__(content=centered_container)
 
     def validate_password(self, e):
-        if not self.username_field.value or not self.password_field.value or not self.confPassword_field.value:
+        """
+        Validates the user's password input during sign-up. Checks if the passwords match.
+        
+        Arguments:
+            e: The event triggered by the button click.
+        """
+        # Check if all fields are filled in and if passwords match
+        if not self.username_field.value.strip() or not self.password_field.value.strip() or not self.confPassword_field.value.strip():
             self.error_message.value = "All fields are required."
-        elif self.password_field.value != self.confPassword_field.value:
+        elif self.password_field.value.strip() != self.confPassword_field.value.strip():
             self.error_message.value = "Passwords do not match."
         else:
-            self.error_message.value = ""
+            self.error_message.value = ""  # Clear error message
             print("Sign-Up clicked")
-            self.show_security_questions_form()
+            self.show_security_questions_form()  # Move to the next step: security questions
 
-        inputed_username = self.username_field.value
-        inputed_password = self.password_field.value
+        # Store temporary user info (username and password hash)
+        self.user_manager.temp_info.update({
+            "username": self.username_field.value.strip(),
+            "password_hash": self.user_manager.hash_input(self.password_field.value.strip())
+        })
         
-        self.login_manager.signUp(inputed_username, inputed_password)
+        self.update()  # Ensure the UI is updated
 
-        self.update()
         
 
 class SecurityQuestionsForm(ft.AlertDialog):
-    def __init__(self, change_scene_callback, show_account_creation_form):
+    def __init__(self, change_scene_callback, show_account_creation_form, user_instance = None):
         super().__init__()
         self.change_scene_callback = change_scene_callback
         self.show_account_creation_form = show_account_creation_form
+        self.user_manager = user_instance
         self.questions = [
             "What was the name of your first pet?",
             "What is your mother’s maiden name?",
@@ -182,25 +191,30 @@ class SecurityQuestionsForm(ft.AlertDialog):
         self.question3.update()
 
     def save_security_questions(self, e):
-        # Collecting selected questions and answers
-        security_data = {
-            "question1": self.question1.value,
-            "answer1": self.answer1.value,
-            "question2": self.question2.value,
-            "answer2": self.answer2.value,
-            "question3": self.question3.value,
-            "answer3": self.answer3.value
-        }
+        """
+        Saves the user's selected security questions and their answers.
+        
+        Arguments:
+            e: The event triggered by the save button click.
+        """
+        # Update temporary user info with security questions and hashed answers
+        self.user_manager.temp_info.update({
+            "security_question1": self.question1.value,
+            "security_question1_answer": self.user_manager.hash_input(self.answer1.value.strip()),
+            "security_question2": self.question2.value,
+            "security_question2_answer": self.user_manager.hash_input(self.answer2.value.strip()),
+            "security_question3": self.question3.value,
+            "security_question3_answer": self.user_manager.hash_input(self.answer3.value.strip())
+        })
 
-        # Saving security questions and answers to a JSON file
-        with open("security_questions.json", "w") as file:
-            json.dump(security_data, file)
+        # Create the user in the system
+        self.user_manager.create_user(**self.user_manager.temp_info)
 
         print("Security questions saved")
-        self.open = False
-        self.update()
+        self.open = False  # Close the security questions form
+        self.update()  # Update the UI
 
-        # Directly call the AccountCreationForm (BudgetEntryDialog) after saving security questions
+        # Move to the next form (Account Creation)
         self.show_account_creation_form()
 
 

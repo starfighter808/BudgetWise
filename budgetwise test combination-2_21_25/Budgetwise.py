@@ -2,33 +2,32 @@ from BWImports import *
         
 def main(page: ft.Page):
 
-    installer = Installation()
-    app_folder = installer.get_app_folder()
-    db_path = os.path.join(app_folder, installer.db_filename)
+    installer = Installation()  # Create an Installation object to handle app setup tasks
+    app_folder = Path(installer.get_app_folder())  # Get the app's folder path
+    db_path = app_folder / installer.db_filename  # Determine the path for the database file
     
-    # Check if the database already exists. If not, create it.
-    if not os.path.exists(db_path):
-        print("Database not found. Creating a new encrypted database...")
-        installer.create_encrypted_database()
-        print("Success: Encrypted database created and key stored securely.")
+    # Check if the database exists. If not, create it.
+    if not db_path.exists():
+        print("Database not found. Creating a new encrypted Database...")
+        installer.create_encrypted_database(db_path)  # Create the encrypted database
+        print("Success: Encrypted Database created and key stored securely.")
     else:
         print("Database already exists. Starting application...")
 
-    # DO NOT TOUCH THIS CODE. APP BREAKS
-    BudgetDb = database()
-    
+    # Function to handle clean exit of the app
     def on_exit():
+        """
+        This function is called when the app is closing. It clears all UI elements 
+        to prevent leftover elements on the screen.
+        """
         print("App is attempting to close")
+        page.overlay.clear()  # Remove all forms from the overlay
+        page.controls.clear()  # Clear the main page's controls
 
-        # Ensure the database connection is closed in the same thread
-        if BudgetDb.check_connection():
-            BudgetDb.close_db()
-
-        if BudgetDb.check_connection() != True:
-            print("Database disconnected")
-        else:
-            print("Error")
-        return True
+    # DO NOT TOUCH THIS CODE. APP BREAKS.
+    # Initialize core classes to ensure no duplicate class initialization
+    BudgetDb = Database.get_instance(installer)  # Initialize the Database instance
+    user_class_initialized = User(BudgetDb)  # Initialize the User class with the Database instance
 
     # Register the on_exit function to be called on exit
     atexit.register(on_exit)
@@ -91,9 +90,9 @@ def main(page: ft.Page):
         show_form(budget_creation_form)
 
     # Initialize all forms with necessary arguments
-    login_form = LoginScene(change_scene_callback=change_scene)
-    signin_form = SignInScene(change_scene_callback=change_scene, show_security_questions_form=show_security_questions_form)
-    security_questions_form = SecurityQuestionsForm(change_scene_callback=change_scene, show_account_creation_form=show_account_creation_form)
+    login_form = LoginScene(change_scene_callback=change_scene, user_instance=user_class_initialized)
+    signin_form = SignInScene(change_scene_callback=change_scene, show_security_questions_form=show_security_questions_form, user_instance=user_class_initialized)
+    security_questions_form = SecurityQuestionsForm(change_scene_callback=change_scene, show_account_creation_form=show_account_creation_form, user_instance=user_class_initialized)
     account_creation_form = AccountCreationForm(change_scene_callback=change_scene)
     data_storage = DataManager()
     budget_creation_form = BudgetCreationForm(
