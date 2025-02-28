@@ -1,6 +1,6 @@
 import flet as ft
 import atexit
-from Database import database
+from Database import Database
 from BWScenes import WelcomeScene
 from BWDash import DashboardScene
 from BWAccounts import AccountScene
@@ -11,4 +11,5 @@ from installation import Installation
 from BWHistory import HistoryScene
 from BWMenu import MenuBar    
 import os
-from login import Login
+from user import User
+from pathlib import Path

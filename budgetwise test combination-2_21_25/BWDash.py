@@ -186,7 +186,7 @@ class DashboardScene(ft.Container):
     def update_text_value(self, e, account):
         """Update the slider when the text field loses focus."""
         if account in self.sliders:
-            slider, text_field = self.sliders[account]
+            slider, text_field, delete_button = self.sliders[account]  # Unpack all three
             try:
                 value = int(e.control.value)  # Ensure integer value
                 value = min(value, slider.max)  # Prevent exceeding max
@@ -206,11 +206,11 @@ class DashboardScene(ft.Container):
     def update_slider_value(self, e, account):
         """Update the text field when the slider is changed."""
         if account in self.sliders:
-            slider, text_field = self.sliders[account]
+            slider, text_field, delete_button = self.sliders[account]  # Unpack all three elements
             slider.value = round(e.control.value)  # Ensure whole numbers
             text_field.value = str(round(e.control.value))  # Update text field
             slider.label = f"{account}: {round(e.control.value)}"
-            
+
             self.data_manager.update_account(account, slider.value)  # Sync with DataManager
             self.slider_container.update()
             self.refresh_left_table()  # Update daily spending
