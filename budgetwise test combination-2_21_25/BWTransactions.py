@@ -1,12 +1,14 @@
 import flet as ft
 
 class TransactionScene(ft.Container):
-    def __init__(self, change_scene_callback, p_width, p_height, data_manager):
+    def __init__(self, change_scene_callback, p_width, p_height, data_manager, show_transaction_creation_form, transaction_creation_form):
         super().__init__()
         self.change_scene_callback = change_scene_callback
         self.p_width = p_width
         self.p_height = p_height
         self.data_manager = data_manager
+        self.show_tranaction_creation_form=show_transaction_creation_form
+        self.transaction_creation_form=transaction_creation_form
         self.bgcolor = "#0d0d10"
         self.data = [
             {"account_name": "Housing or Rent", "transaction_date": "9/1/23", "recurring_date": "10/1/23", "amount": "$1000"},
@@ -58,9 +60,9 @@ class TransactionScene(ft.Container):
         return ft.DataTable(columns=columns, rows=rows)
 
     def on_submit_click(self, event):
-        # Handle the submit button click event
-        print("Submit button clicked!")
-        # You can add your custom logic here
+        """Opens the budget creation form."""
+        self.transaction_creation_form.open = True
+        self.transaction_creation_form.update()
 
     def get_content(self):
         """Returns the main dashboard content."""

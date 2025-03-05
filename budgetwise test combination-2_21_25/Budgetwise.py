@@ -88,6 +88,10 @@ def main(page: ft.Page):
         print("Showing budget creation form")
         budget_creation_form.on_close = scenes[1].on_budget_form_closed  # ✅ Ensure it refreshes the dashboard
         show_form(budget_creation_form)
+    
+    def show_transaction_creation_form():
+        print("Showing Transaction Form")
+        show_form(transaction_creation_form)
 
     # Initialize all forms with necessary arguments
     login_form = LoginScene(change_scene_callback=change_scene, user_instance=user_class_initialized)
@@ -96,6 +100,12 @@ def main(page: ft.Page):
     account_creation_form = AccountCreationForm(change_scene_callback=change_scene)
     data_storage = DataManager()
     budget_creation_form = BudgetCreationForm(
+        change_scene_callback=change_scene,
+        data_manager=data_storage,
+        total_budget = 9999.99
+    )
+
+    transaction_creation_form = TransactionsForm(
         change_scene_callback=change_scene,
         data_manager=data_storage
     )
@@ -129,7 +139,9 @@ def main(page: ft.Page):
             change_scene_callback = change_scene, 
             p_width = page.window_width, 
             p_height = page.window_height,
-            data_manager = data_storage
+            data_manager = data_storage,
+            show_transaction_creation_form=show_transaction_creation_form,
+            transaction_creation_form=transaction_creation_form, 
         )
     ]
 
@@ -141,7 +153,7 @@ def main(page: ft.Page):
     scene_content = ft.Container(content=scenes[0].get_content(), expand=True)
 
     # Add forms to the overlay, keeping them closed initially
-    page.overlay.extend([login_form, signin_form, security_questions_form, account_creation_form, budget_creation_form])
+    page.overlay.extend([login_form, signin_form, security_questions_form, account_creation_form, budget_creation_form, transaction_creation_form])
 
     # Ensure all forms are closed initially
     login_form.open = False
@@ -149,6 +161,7 @@ def main(page: ft.Page):
     security_questions_form.open = False
     account_creation_form.open = False
     budget_creation_form.open = False
+    transaction_creation_form.open = False
 
     # Create a container that includes the menu bar and the main content
     main_container = ft.Row(

@@ -223,8 +223,8 @@ class AccountCreationForm(ft.AlertDialog):
     def __init__(self, change_scene_callback):
         self.change_scene_callback = change_scene_callback
         budget_text = ft.Text("Budget", size=100, color="grey", weight="bold")
-        self.job_name = ft.TextField(label="Job Name", width=300)
-        self.income = ft.TextField(label="Income", width=300)
+        self.job_name = ft.TextField(label="Job Name", width=300, color="grey")
+        self.income = ft.TextField(label="Income", width=300, color="grey")
         self.pay_period = ft.Dropdown(
             options=[
                 ft.dropdown.Option("Default"),
@@ -233,9 +233,10 @@ class AccountCreationForm(ft.AlertDialog):
                 ft.dropdown.Option("Monthly")
             ],
             label="Pay Period",
-            width=300
+            width=300, 
+            color="grey"
         )
-        create_budget_button = ft.ElevatedButton(text="Create Budget", on_click=self.create_budget)
+        create_transaction_button = ft.ElevatedButton(text="Create Transaction", on_click=self.create_budget)
 
         entry_column = ft.Column(
             controls=[
@@ -243,7 +244,7 @@ class AccountCreationForm(ft.AlertDialog):
                 self.job_name,
                 self.income,
                 self.pay_period,
-                create_budget_button
+                create_transaction_button
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -273,10 +274,12 @@ class AccountCreationForm(ft.AlertDialog):
         self.change_scene_callback(1) 
 
 class BudgetCreationForm(ft.AlertDialog):
-    def __init__(self, change_scene_callback, data_manager):
+    def __init__(self, change_scene_callback, data_manager, total_budget):
         super().__init__()
         self.change_scene_callback = change_scene_callback
         self.data_manager = data_manager
+        self.total_budget = total_budget  # Total budget allocated
+        self.remaining_amount = total_budget
         
         self.title = ft.Text("Create Accounts", size=24, weight="bold")
         self.account_name_field = ft.TextField(label="Account name:")
@@ -284,7 +287,10 @@ class BudgetCreationForm(ft.AlertDialog):
         self.create_account_button = ft.TextButton("Create Account", on_click=self.submit_form)
         self.finish_button = ft.TextButton("Finish", on_click=self.close_form)
 
-        self.summary_box = ft.Column()
+        self.total_budget_label = ft.Text(f"Total Budget: ${self.total_budget:.2f}", size=18)
+        self.remaining_amount_label = ft.Text(f"Remaining: ${self.remaining_amount:.2f}", size=18, weight="bold", color="orange")
+
+        self.summary_box = ft.ListView(expand=True)
 
         self.content = ft.Container(
             content=ft.Row([
@@ -295,8 +301,11 @@ class BudgetCreationForm(ft.AlertDialog):
                     self.create_account_button,
                     ft.Container(
                         content=ft.Column([
+                            self.total_budget_label,  # Display total budget at the top
                             ft.Text("Budget Accounts:", size=18, weight="bold", color="Grey"),
-                            self.summary_box,
+                            # Wrap the summary_box in a scrollable container using ListView
+                            self.summary_box,  # ListView already handles scrolling
+                            self.remaining_amount_label,  # Display remaining amount at the bottom
                         ]),
                         padding=10,
                         border=ft.Border(
@@ -307,7 +316,7 @@ class BudgetCreationForm(ft.AlertDialog):
                         ),
                         border_radius=5,
                         width=400,
-                        height=300,
+                        height=250,
                     ),
                 ], width=450),
             ]),
@@ -315,7 +324,7 @@ class BudgetCreationForm(ft.AlertDialog):
             padding=10,
             bgcolor="#0d0d10"
         )
-
+            
         self.actions = [self.finish_button]
 
         self.data_manager.add_listener(self.refresh_summary)
@@ -331,6 +340,7 @@ class BudgetCreationForm(ft.AlertDialog):
 
         if account_name:
             self.data_manager.add_account(account_name, amount)
+            self.remaining_amount -= amount
             self.refresh_summary()  # Refresh summary after adding the account
             self.account_name_field.value = ""
             self.amount_field.value = ""
@@ -351,6 +361,8 @@ class BudgetCreationForm(ft.AlertDialog):
                     ])
                 )
             self.summary_box.update()
+            self.remaining_amount_label.value = f"Remaining: ${self.remaining_amount:.2f}"
+            self.content.update()
 
     def edit_account(self, account_name):
         """Fills the fields with selected account info for editing."""
@@ -363,7 +375,11 @@ class BudgetCreationForm(ft.AlertDialog):
     def delete_account(self, account_name):
         """Deletes an account and updates the summary."""
         if account_name in self.data_manager.accounts:
+            # Retrieve the amount to increase the remaining amount
+            amount = self.data_manager.accounts[account_name]
             self.data_manager.remove_account(account_name)
+            # Increase the remaining amount by the deleted account's amount
+            self.remaining_amount += amount
             self.refresh_summary()  # Refresh summary after deleting the account
         else:
             print("Error: Account not found.")
@@ -373,3 +389,86 @@ class BudgetCreationForm(ft.AlertDialog):
         self.open = False
         self.page.update()
         self.change_scene_callback(1)
+
+class TransactionsForm(ft.AlertDialog):
+    def __init__(self, change_scene_callback, data_manager):
+        super().__init__()
+        self.change_scene_callback = change_scene_callback
+        self.data_manager = data_manager
+
+        # Listen for changes in DataManager
+        self.data_manager.add_listener(self.refresh_dropdown)
+
+        self.job_name = ft.TextField(label="Transaction Name", width=300, color="grey")
+        self.transaction_amount = ft.TextField(label="Transaction Amount", width=300)
+        self.transaction_date = ft.TextField(label="Transaction Date", width=300)
+
+        self.accounts = ft.Dropdown(
+            options=self.get_account_options(),  # Get initial options
+            label="Accounts",
+            width=300
+        )
+
+        create_transaction_button = ft.ElevatedButton(text="Create Transaction", on_click=self.create_transaction)
+
+        entry_column = ft.Column(
+            controls=[
+                ft.Text("Transaction", size=100, color="grey", weight="bold"),
+                self.job_name,
+                self.transaction_amount,
+                self.transaction_date,
+                self.accounts,
+                create_transaction_button
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20
+        )
+
+        centered_container = ft.Container(
+            content=entry_column,
+            alignment=ft.alignment.center,
+            bgcolor="#0d0d10",
+            width=720,
+            height=960,
+            padding=20
+        )
+
+        self.content = centered_container
+
+    def get_account_options(self):
+        """Fetches the latest accounts from DataManager and converts them to dropdown options."""
+        return [ft.dropdown.Option(account) for account in self.data_manager.list_accounts()]
+
+    def refresh_dropdown(self):
+        """Updates the dropdown when accounts change."""
+        self.accounts.options = self.get_account_options()  # Refresh options
+        self.accounts.update()  # Ensure the dropdown updates in UI
+
+    def create_transaction(self, e):
+        """Creates a new transaction and updates the data manager."""
+        name = self.job_name.value
+        amount = self.transaction_amount.value
+        date = self.transaction_date.value
+        account = self.accounts.value
+
+        if not name or not amount or not date or not account:
+            print("Error: Missing transaction details")  # Handle validation properly
+            return
+
+        # Add transaction to DataManager
+        transaction_id = self.data_manager.add_transaction(name, amount, date, account)
+        print(f"Transaction added with ID: {transaction_id}")
+
+        # Close the form
+        self.open = False
+        self.update()
+
+        # Return to the dashboard or transaction scene
+        self.change_scene_callback(4)
+
+    def close_form(self, e):
+        """Handles closing the form."""
+        self.open = False
+        self.page.update()
+        self.change_scene_callback(4)

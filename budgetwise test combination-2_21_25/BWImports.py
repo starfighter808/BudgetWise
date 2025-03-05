@@ -5,7 +5,7 @@ from BWScenes import WelcomeScene
 from BWDash import DashboardScene
 from BWAccounts import AccountScene
 from BWTransactions import TransactionScene
-from BWForms import LoginScene, SignInScene, SecurityQuestionsForm, AccountCreationForm, BudgetCreationForm
+from BWForms import LoginScene, SignInScene, SecurityQuestionsForm, AccountCreationForm, BudgetCreationForm, TransactionsForm
 from DataManager import DataManager
 from installation import Installation
 from BWHistory import HistoryScene
