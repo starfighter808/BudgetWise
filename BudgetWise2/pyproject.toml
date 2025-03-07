@@ -1,0 +1,23 @@
+[project]
+name = "BudgetWise2"
+version = "0.1.0"
+description = "A Budgeting application developed for a Capstone Project"
+authors = [{name = "Capstone Group 1"}]
+readme = "README.md"
+requires-python = ">=3.12.7"
+
+dependencies = [
+    "sqlcipher3-wheels",
+    "argon2-cffi",
+    "keyring",
+    "flet",
+    "flet-desktop",
+    "flet-cli"
+]
+
+# Corrected package definition
+packages = [{ include = "budgetwise2" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

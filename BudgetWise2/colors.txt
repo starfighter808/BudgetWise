@@ -1,0 +1,18 @@
+Discord Colors:
+
+    Discord Blurple (Primary Color): #5865F2
+    Discord Dark Theme Background: #36393E
+    Discord Lighter Grey (Chat Background): #40444B
+    Discord Green (Success): #57F287
+    Discord Yellow (Warning): #FEE75C
+    Discord Red (Error): #ED4245
+
+Charcoal Grey Shades:
+
+    Charcoal Grey (Standard): #36454F
+    Dark Charcoal Grey: #2E2E2E
+    Light Charcoal Grey: #555555
+
+soft sky blue #5C9DFF
+lavander blue #7A78BF
+dep periwinkle #6457F2
