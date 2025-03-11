@@ -13,12 +13,14 @@ class UserData:
         """Initialize with database instance and Argon2 password hasher."""
         self.db = db_instance
         self.ph = PasswordHasher()
+        self.username = ""
         self.temp_info = {}
         self.temp_questions = {}
         self.temp_answers = {}
 
     def get_user_by_username(self, username):
         """Fetch user details by username (excluding sensitive data)."""
+        self.username = username
         username = username.strip() if isinstance(username, str) else None
         if not username:
             return None
@@ -170,3 +172,33 @@ class UserData:
         except Exception as e:
             print(f"Error creating user: {e}")
             return False
+    
+    def get_user_id(self, username):
+        """
+        Retrieve the user ID based on the username.
+        Returns the user ID if found, or None if no record is found.
+        """
+        username = username.strip() if isinstance(username, str) else None
+        if not username:
+            return None
+
+        try:
+            cursor = self.db.cursor()
+            cursor.execute(
+                """SELECT userID
+                   FROM users WHERE username = ?""",
+                (username,)
+            )
+            result = cursor.fetchone()
+            
+            # Check if a result was found and store the user ID
+            if result:
+                self.user_id = result[0]
+                print(f"Fetched user ID for {username}: {self.user_id}")
+                return self.user_id
+            else:
+                print(f"No user ID found for {username}")
+                return None
+        except Exception as e:
+            print(f"An error occurred while fetching the user ID for {username}: {e}")
+            return None

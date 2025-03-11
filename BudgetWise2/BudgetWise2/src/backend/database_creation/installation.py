@@ -146,7 +146,7 @@ class Installation:
         # SQL script to create the necessary tables
         sql_script = """
         CREATE TABLE IF NOT EXISTS users (
-            user_ID INTEGER PRIMARY KEY,
+            userID INTEGER PRIMARY KEY,
             username TEXT UNIQUE,
             password_hash TEXT NOT NULL,
             alerts_enabled INTEGER DEFAULT 1,

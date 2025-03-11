@@ -2,7 +2,7 @@ import flet as ft
 import re
 
 class ResetPassword(ft.View):
-    def __init__(self, page: ft.Page, user_repo):
+    def __init__(self, page: ft.Page, user_repo, password_hasher):
         super().__init__(route="/sign_up", bgcolor="#5C9DFF")
 
         self.page = page

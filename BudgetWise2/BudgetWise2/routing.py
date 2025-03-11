@@ -17,7 +17,9 @@ from src.ui.pages_scenes.reset_password import ResetPassword
 from src.ui.pages_scenes.dashboard import Dashboard
 # user data class
 from src.backend.database_interation.user_data import UserData
-
+# User Accounts page
+from src.ui.pages_scenes.accounts import Accounts
+from src.ui.pages_scenes.history import History
 
 
 
@@ -32,9 +34,25 @@ def view_handler(page: ft.Page, db_instance):
         "/security_questions": SecurityQuestions(page, user_repo, password_hasher), 
         "/create_budget": CreateBudget(page, user_repo),  
         "/dashboard": Dashboard(page, user_repo),
+        "/Accounts": Accounts(page, user_repo),
+        
         "/username_verification": UsernameVerification(page, user_repo),
         "/forgot_password_questions": ForgotPasswordQuestions(page, user_repo, password_hasher),
         "/reset_password": ResetPassword(page, user_repo, password_hasher),
         "/reset_password_success": ResetPasswordSuccess(page),
         "/add_budget_accounts": AddBudgetAccounts(page, user_repo),
     }
+
+    def route_change(e):
+        page.views.clear()
+        new_view = views.get(page.route)
+        if new_view:
+            page.views.append(new_view)
+            page.update()
+            if hasattr(new_view, 'on_route_change'):
+                new_view.on_route_change(e)
+        else:
+            print(f"Error: No view found for route {page.route}")
+
+    page.on_route_change = route_change
+    page.go("/login")
