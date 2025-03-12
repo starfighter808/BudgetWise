@@ -1,4 +1,5 @@
 import flet as ft
+from datetime import datetime
 
 class Accounts(ft.View):
     def __init__(self, page: ft.Page, user_repo):
@@ -97,12 +98,84 @@ class Accounts(ft.View):
             # Execute insert statements
             self.cursor.executemany(insert_query, test_data)
             self.db.commit_db()
+
         else:
             print("Data already exists in the budget_accounts table. Skipping insertion.")
+
+    def insert_test_vendors(self):
+        try:
+            self.cursor.execute("SELECT COUNT(*) FROM vendor")
+            count = self.cursor.fetchone()[0]
+            
+            if count == 0:
+                # Sample data to insert into vendor table
+                test_data = [
+                    (self.userid, "Velero"),
+                    (self.userid, "Home Depot"),
+                    (self.userid, "McDonalds"),
+                    (self.userid, "Premiere"),
+                    (self.userid, "Walmart")
+                ]
+
+                # SQL insert statement for vendor table
+                insert_query = """
+                INSERT INTO vendor (the_user, vendor_name)
+                VALUES (?, ?)
+                """
+                
+                # Execute insert statements
+                self.cursor.executemany(insert_query, test_data)
+                self.db.commit_db()
+
+            else:
+                print("Data already exists in the vendor table. Skipping insertion.")
+                
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    def insert_transaction_data(self):
+        self.cursor.execute("SELECT COUNT(*) FROM transactions")
+        count = self.cursor.fetchone()[0]
+        
+        if count == 0:
+            self.cursor.execute("SELECT vendor_id FROM vendor")
+            vendors = [v[0] for v in self.cursor.fetchall()]
+            
+            self.cursor.execute("SELECT budget_accounts_id FROM budget_accounts")
+            budget_accounts = [b[0] for b in self.cursor.fetchall()]
+
+            test_data = [
+                (self.userid, budget_accounts[0], vendors[0], 0, 150.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying groceries', 0, 3),
+                (self.userid, budget_accounts[1], vendors[1], 0, 200.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying home supplies', 0, 4),
+                (self.userid, budget_accounts[2], vendors[2], 1, 15.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Eating out', 0, 2),
+                (self.userid, budget_accounts[3], vendors[3], 0, 75.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Watching a movie', 0, 3),
+                (self.userid, budget_accounts[4], vendors[4], 0, 120.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying electronics', 0, 5),
+                (self.userid, budget_accounts[0], vendors[1], 1, 200.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying furniture', 1, 4),
+                (self.userid, budget_accounts[1], vendors[2], 0, 20.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying snacks', 0, 2),
+                (self.userid, budget_accounts[2], vendors[3], 0, 50.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Entertainment', 0, 3),
+                (self.userid, budget_accounts[3], vendors[4], 1, 150.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying clothes', 1, 5),
+                (self.userid, budget_accounts[4], vendors[0], 0, 300.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Fueling car', 0, 5)
+            ]
+
+            insert_query = """
+            INSERT INTO transactions (the_user, budget_accounts_id, vendor_id, transaction_type, amount, transaction_date, description, recurring, importance_rating)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+
+            # Execute insert statements
+            self.cursor.executemany(insert_query, test_data)
+            self.db.commit_db()
+
+
+        else:
+            print("Data already exists in the budget_accounts table. Skipping insertion.")
+
 
     def refresh_table(self):
         """Updates the table dynamically whenever accounts are changed."""
         self.insert_test_data()  # Insert test data when the table is refreshed
+        self.insert_test_vendors()
+        self.insert_transaction_data()
         self.table.controls.clear()
 
         # Table Header
@@ -110,6 +183,7 @@ class Accounts(ft.View):
             ft.Text("Account", weight="bold", width=150, color=ft.colors.WHITE, text_align="center"),
             ft.Text("Balance", weight="bold", width=100, color=ft.colors.WHITE, text_align="center"),
             ft.Text("Allocation", weight="bold", width=250, color=ft.colors.WHITE, text_align="center"),
+            ft.Text("Options", weight="bold", width=150, color=ft.colors.WHITE, text_align="center"),
             ft.Text("", weight="bold", width=50)  # Moved delete button over
         ], alignment=ft.MainAxisAlignment.CENTER))  # Center the row content
 
@@ -118,12 +192,29 @@ class Accounts(ft.View):
             self.table.controls.append(ft.Text("No accounts available.", italic=True, color=ft.colors.GREY_300, alignment=ft.alignment.center))
 
         for account in accounts:
-            account_name, balance = account['account_name'], account['balance']
-            max_value = balance  # The progress bar max is the account balance
+            budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['balance']
+            max_value = balance  # The progress bar max is the initial account balance
+
+            # Fetch transactions for the current budget_accounts_id
+            self.cursor.execute("SELECT description, amount FROM transactions WHERE budget_accounts_id = ?", (budget_accounts_id,))
+            transactions = self.cursor.fetchall()
+
+            # Calculate total amount spent
+            total_spent = sum(amount for _, amount in transactions)
+            updated_balance = balance - total_spent
+
+            # Create Dropdown options based on transactions
+            dropdown_options = [f"{description}: ${amount:.2f}" for description, amount in transactions]
+
+            # Create Dropdown
+            dropdown = ft.Dropdown(
+                options=[ft.dropdown.Option(option) for option in dropdown_options],
+                on_change=lambda e, name=account_name: print(f"Selected {e.control.value} for account {name}")
+            )
 
             # Create Progress Bar
             progress_bar = ft.ProgressBar(
-                value=balance / max_value if max_value > 0 else 0,
+                value=updated_balance / max_value if max_value > 0 else 0,
                 width=250
             )
 
@@ -137,20 +228,21 @@ class Accounts(ft.View):
             # Add Row to Table
             self.table.controls.append(ft.Row([
                 ft.Text(account_name, width=150, color=ft.colors.WHITE, text_align="center"),
-                ft.Text(f"${balance:.2f}", width=100, color=ft.colors.WHITE, text_align="center"),
+                ft.Text(f"${updated_balance:.2f}", width=100, color=ft.colors.WHITE, text_align="center"),
                 progress_bar,
+                dropdown,
                 ft.Container(delete_button, alignment=ft.alignment.center_right, width=50)
             ], alignment=ft.MainAxisAlignment.CENTER))  # Center the row content
 
         if self.page:
             self.table.update()
 
+
     def get_accounts(self):
-        """Retrieves accounts from the budget_accounts table."""
-        self.cursor.execute("SELECT account_name, balance FROM budget_accounts")
-        rows = self.cursor.fetchall()
-        accounts = [{'account_name': row[0], 'balance': row[1]} for row in rows]
-        return accounts
+        self.cursor.execute("SELECT budget_accounts_id, account_name, balance FROM budget_accounts")
+        accounts = self.cursor.fetchall()
+        return [{'budget_accounts_id': account[0], 'account_name': account[1], 'balance': account[2]} for account in accounts]
+
 
     def delete_account(self, account):
         """Deletes an account and refreshes the table."""
