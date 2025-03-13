@@ -212,7 +212,12 @@ class Accounts(ft.View):
 
         accounts = self.get_accounts()
         if not accounts:
-            self.table.controls.append(ft.Text("No accounts available.", italic=True, color=ft.colors.GREY_300, alignment=ft.alignment.center, size=24))
+            self.table.controls.append(
+                ft.Container(
+                    content=ft.Text("No accounts available.", italic=True, color=ft.colors.GREY_300, size=24),
+                    alignment=ft.alignment.center,
+                )
+            )
 
         for account in accounts:
             budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['balance']
