@@ -110,7 +110,6 @@ class History(ft.View):
         combined_dropdown = ft.Dropdown(
             options=[ft.dropdown.Option(option) for option in options],
             width=200,
-            height=50,
             on_change=lambda e: print(f"Selected {e.control.value}")
         )
         return combined_dropdown
