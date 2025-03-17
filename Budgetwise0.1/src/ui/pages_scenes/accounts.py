@@ -1,5 +1,5 @@
 import flet as ft
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Accounts(ft.View):
     def __init__(self, page: ft.Page, user_repo, NavRail):
@@ -172,6 +172,9 @@ class Accounts(ft.View):
             self.cursor.execute("SELECT budget_accounts_id FROM budget_accounts")
             budget_accounts = [b[0] for b in self.cursor.fetchall()]
 
+            # TODO: for demo. Needed to add a transaction that happened a week from now
+            wkFrmNow = datetime.now() + timedelta(weeks=1)
+
             test_data = [
                 (self.userid, budget_accounts[0], vendors[0], 0, 150.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying groceries', 0, 3),
                 (self.userid, budget_accounts[1], vendors[1], 0, 200.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying home supplies', 0, 4),
@@ -183,7 +186,7 @@ class Accounts(ft.View):
                 (self.userid, budget_accounts[2], vendors[3], 0, 50.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Entertainment', 0, 3),
                 (self.userid, budget_accounts[3], vendors[4], 1, 150.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Buying clothes', 1, 5),
                 (self.userid, budget_accounts[4], vendors[0], 0, 300.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Fueling car', 0, 5),
-                (self.userid, budget_accounts[5], vendors[5], 0, 300.00, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Gas payment', 1, 5)
+                (self.userid, budget_accounts[5], vendors[5], 0, 300.00, wkFrmNow.strftime('%Y-%m-%d %H:%M:%S'), 'Gas payment', 1, 5)
             ]
 
             insert_query = """
