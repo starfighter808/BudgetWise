@@ -16,7 +16,7 @@ class History(ft.View):
         )
         self.page = page
         self.user_repo = user_repo
-        self.userid = self.user_repo.get_user_id(self.user_repo.temp_username)
+        self.userid = 1
         
         # Use the existing database connection from user_repo
         self.db = self.user_repo.db
@@ -26,16 +26,23 @@ class History(ft.View):
         self.budgetid = self.get_budget_id(self.userid)
 
         # Table container, starts empty
-        self.table = ft.Column(spacing=10, alignment=ft.MainAxisAlignment.CENTER)  # Center the table content
+        self.table = ft.Column(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
 
-        # Wrap the table in a ListView for scrolling
-        self.scrollable_table = ft.ListView(
-            controls=[self.table],
+        # Scrollable wrapper specifically for the dynamic table elements
+        self.TableElements = ft.ListView(
+            controls=[
+                self.table,  # Add your table elements here
+            ],
             expand=True,
             spacing=10,
-            padding=10,
         )
 
+        # Wrap the scrollable container
+        self.scrollable_table = ft.Container(
+            content=self.TableElements,  # Scrollable content
+            expand=True,
+            padding=10,
+        )
 
         combined_month_year_options = self.get_combined_month_year_options(self.cursor)
         self.combined_dropdown = self.create_combined_month_year_dropdown(combined_month_year_options)
@@ -233,6 +240,99 @@ class History(ft.View):
         else:
             print("Data already exists in the budget_accounts table. Skipping insertion.")
 
+    # def refresh_table(self, e=None):
+    #     """Updates the table dynamically based on the selected month and year."""
+    #     selected_month_year = self.combined_dropdown.value
+    #     print(f"Selected month-year: {selected_month_year}")  # Debug output
+
+    #     if selected_month_year == "No data available":
+    #         self.table.controls.clear()
+    #         self.table.controls.append(ft.Text("No transactions available for the selected month and year.", italic=True, color=ft.colors.GREY_300, size=24))
+    #         self.table.update()
+    #         return
+
+    #     try:
+    #         selected_month, selected_year = self.parse_month_year(selected_month_year)
+    #         print(f"Selected month: {selected_month}, Selected year: {selected_year}")  # Debug output
+    #     except ValueError as ve:
+    #         print(f"Error parsing selected month-year: {ve}")
+    #         self.table.controls.clear()
+    #         self.table.controls.append(ft.Text("Invalid date format selected.", italic=True, color=ft.colors.RED, size=24))
+    #         self.table.update()
+    #         return
+
+    #     month_names = {
+    #         'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
+    #         'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12'
+    #     }
+        
+    #     selected_month = month_names.get(selected_month)
+    #     if not selected_month:
+    #         print(f"Invalid month selected: {selected_month}")
+    #         self.table.controls.clear()
+    #         self.table.controls.append(ft.Text("Invalid month selected.", italic=True, color=ft.colors.RED, size=24))
+    #         self.table.update()
+    #         return
+
+    #     selected_date_prefix = f"{selected_year}-{selected_month}"
+
+    #     self.insert_test_data()
+    #     self.insert_test_vendors()
+    #     self.insert_transaction_data()
+    #     self.table.controls.clear()
+
+    #     self.table.controls.append(ft.Row([
+    #         ft.Text("Account", weight="bold", width=200, color=ft.colors.WHITE, text_align="center", size=24),
+    #         ft.Text("Balance", weight="bold", width=150, color=ft.colors.WHITE, text_align="center", size=24),
+    #         ft.Text("Allocation", weight="bold", width=300, color=ft.colors.WHITE, text_align="center", size=24),
+    #         ft.Text("Transactions", weight="bold", width=300, color=ft.colors.WHITE, text_align="center", size=24),
+    #         ft.Text("", weight="bold", width=50, size=24)
+    #     ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
+
+    #     accounts = self.get_accounts()
+    #     if not accounts:
+    #         self.table.controls.append(ft.Text("No accounts available.", italic=True, color=ft.colors.GREY_300, size=24))
+
+    #     for account in accounts:
+    #         budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['balance']
+    #         max_value = balance
+
+    #         self.cursor.execute("SELECT description, amount FROM transactions WHERE budget_accounts_id = ? AND strftime('%Y-%m', transaction_date) = ?", (budget_accounts_id, selected_date_prefix))
+    #         transactions = self.cursor.fetchall()
+
+    #         total_spent = sum(amount for _, amount in transactions)
+    #         updated_balance = balance - total_spent
+
+    #         dropdown_options = [f"{description}: ${amount:.2f}" for description, amount in transactions]
+    #         dropdown = ft.Dropdown(
+    #             options=[ft.dropdown.Option(option) for option in dropdown_options],
+    #             width=300,
+    #             height=50,
+    #             on_change=lambda e, name=account_name: print(f"Selected {e.control.value} for account {name}")
+    #         )
+
+    #         progress_bar = ft.ProgressBar(
+    #             value=updated_balance / max_value if max_value > 0 else 0,
+    #             width=300,
+    #             height=10
+    #         )
+
+    #         delete_button = ft.IconButton(
+    #             icon=ft.icons.DELETE,
+    #             icon_color=ft.colors.RED_ACCENT,
+    #             on_click=lambda e, a=account_name: self.delete_account(a)
+    #         )
+
+    #         self.table.controls.append(ft.Row([
+    #             ft.Text(account_name, width=200, color=ft.colors.WHITE, text_align="center", size=16),
+    #             ft.Text(f"${updated_balance:.2f}", width=150, color=ft.colors.WHITE, text_align="center", size=16),
+    #             ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),
+    #             ft.Container(content=dropdown, alignment=ft.alignment.center, width=300),
+    #             ft.Container(delete_button, alignment=ft.alignment.center_right, width=50)
+    #         ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
+
+    #     if self.page:
+    #         self.table.update()
     def refresh_table(self, e=None):
         """Updates the table dynamically based on the selected month and year."""
         selected_month_year = self.combined_dropdown.value
@@ -274,12 +374,12 @@ class History(ft.View):
         self.insert_transaction_data()
         self.table.controls.clear()
 
+        # Table Header
         self.table.controls.append(ft.Row([
             ft.Text("Account", weight="bold", width=200, color=ft.colors.WHITE, text_align="center", size=24),
             ft.Text("Balance", weight="bold", width=150, color=ft.colors.WHITE, text_align="center", size=24),
             ft.Text("Allocation", weight="bold", width=300, color=ft.colors.WHITE, text_align="center", size=24),
             ft.Text("Transactions", weight="bold", width=300, color=ft.colors.WHITE, text_align="center", size=24),
-            ft.Text("", weight="bold", width=50, size=24)
         ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
 
         accounts = self.get_accounts()
@@ -288,44 +388,87 @@ class History(ft.View):
 
         for account in accounts:
             budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['balance']
-            max_value = balance
 
-            self.cursor.execute("SELECT description, amount FROM transactions WHERE budget_accounts_id = ? AND strftime('%Y-%m', transaction_date) = ?", (budget_accounts_id, selected_date_prefix))
+            # Fetch transactions for the selected month and year
+            self.cursor.execute("""
+                SELECT description, amount, transaction_date 
+                FROM transactions 
+                WHERE budget_accounts_id = ? AND strftime('%Y-%m', transaction_date) = ?
+            """, (budget_accounts_id, selected_date_prefix))
+
             transactions = self.cursor.fetchall()
-
-            total_spent = sum(amount for _, amount in transactions)
+            recent_transactions = transactions[:10]
+            total_spent = sum(amount for _, amount, _ in transactions)
             updated_balance = balance - total_spent
 
-            dropdown_options = [f"{description}: ${amount:.2f}" for description, amount in transactions]
-            dropdown = ft.Dropdown(
-                options=[ft.dropdown.Option(option) for option in dropdown_options],
-                width=300,
-                height=50,
-                on_change=lambda e, name=account_name: print(f"Selected {e.control.value} for account {name}")
-            )
-
+            # Allocation Progress Bar
             progress_bar = ft.ProgressBar(
-                value=updated_balance / max_value if max_value > 0 else 0,
+                value=updated_balance / balance if balance > 0 else 0,
                 width=300,
                 height=10
             )
 
-            delete_button = ft.IconButton(
-                icon=ft.icons.DELETE,
-                icon_color=ft.colors.RED_ACCENT,
-                on_click=lambda e, a=account_name: self.delete_account(a)
+            # Sub-Table Header
+            sub_table_header = ft.Row(
+                controls=[
+                    ft.Text("Description", weight="bold", width=200, text_align="center", size=18),
+                    ft.Text("Amount", weight="bold", width=150, text_align="center", size=18),
+                    ft.Text("Transaction Date", weight="bold", width=200, text_align="center", size=18),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
 
-            self.table.controls.append(ft.Row([
-                ft.Text(account_name, width=200, color=ft.colors.WHITE, text_align="center", size=16),
-                ft.Text(f"${updated_balance:.2f}", width=150, color=ft.colors.WHITE, text_align="center", size=16),
-                ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),
-                ft.Container(content=dropdown, alignment=ft.alignment.center, width=300),
-                ft.Container(delete_button, alignment=ft.alignment.center_right, width=50)
-            ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
+            # Sub-Table Rows
+            sub_table_rows = ft.Column(
+                controls=[
+                    ft.Row(
+                        controls=[
+                            ft.Text(description, width=200, text_align="center", size=16),
+                            ft.Text(f"${amount:.2f}", width=150, text_align="center", size=16),
+                            ft.Text(transaction_date, width=200, text_align="center", size=16),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ) for description, amount, transaction_date in recent_transactions
+                ]
+            )
 
-        if self.page:
-            self.table.update()
+            # Sub-Table Container (Hidden by Default)
+            sub_table = ft.Container(
+                content=ft.Column([sub_table_header, sub_table_rows]),
+                visible=False,
+                padding=10,
+            )
+
+            # Toggle Button
+            toggle_button = ft.ElevatedButton(
+                text="View Transactions",
+                on_click=lambda e, container=sub_table: self.toggle_sub_table(container),
+                width=150
+            )
+
+            # Account Row Container
+            self.table.controls.append(ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Text(account_name, width=200, color=ft.colors.WHITE, text_align="center", size=16),
+                        ft.Text(f"${updated_balance:.2f}", width=150, color=ft.colors.WHITE, text_align="center", size=16),
+                        ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),
+                        ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
+                    ], alignment=ft.MainAxisAlignment.CENTER),
+                    sub_table
+                ]),
+                padding=10
+            ))
+
+        self.table.update()
+
+    def toggle_sub_table(self, container):
+        """Toggle visibility of a sub-table."""
+        container.visible = not container.visible
+        self.table.update()
+
 
     def parse_month_year(self, month_year):
         """Parse the combined month-year string and return month and year."""
@@ -337,15 +480,14 @@ class History(ft.View):
 
 
 
-
+ # TODO: Change the select statement to pull only budget_accounts tied to a specific user_id
     def get_accounts(self):
-        self.cursor.execute("SELECT budget_accounts_id, account_name, balance FROM budget_accounts")
+        # Include a WHERE clause to filter by user_id
+        self.cursor.execute("""
+            SELECT budget_accounts_id, account_name, balance 
+            FROM budget_accounts 
+            WHERE the_user = ?
+        """, (self.userid,))  # Use self.userid to fetch accounts specific to the logged-in user
+
         accounts = self.cursor.fetchall()
         return [{'budget_accounts_id': account[0], 'account_name': account[1], 'balance': account[2]} for account in accounts]
-
-    # TODO: Delete this function
-    def delete_account(self, account):
-        """Deletes an account and refreshes the table."""
-        self.cursor.execute("DELETE FROM budget_accounts WHERE account_name = ?", (account,))
-        self.db.commit_db()
-        self.refresh_table()

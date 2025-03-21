@@ -28,14 +28,21 @@ class Accounts(ft.View):
         # Retrieve budget ID for the user
         self.budgetid = self.get_budget_id(self.userid)
 
-        # Table container, starts empty
-        self.table = ft.Column(spacing=10, alignment=ft.MainAxisAlignment.CENTER)  # Center the table content
+        self.table = ft.Column(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
 
-        # Wrap the table in a ListView for scrolling
-        self.scrollable_table = ft.ListView(
-            controls=[self.table],
+        # Scrollable wrapper specifically for the dynamic table elements
+        self.TableElements = ft.ListView(
+            controls=[
+                self.table,  # Add your table elements here
+            ],
             expand=True,
             spacing=10,
+        )
+
+        # Wrap the scrollable container
+        self.scrollable_table = ft.Container(
+            content=self.TableElements,  # Scrollable content
+            expand=True,
             padding=10,
         )
 
@@ -65,8 +72,6 @@ class Accounts(ft.View):
             )
                                 
         ]
-    
-    # TODO: This function is currently not being called anywhere
     def did_mount(self):
         """Called when the view is first mounted."""
         self.refresh_table()
@@ -207,7 +212,7 @@ class Accounts(ft.View):
         self.insert_test_data()  # Insert test data when the table is refreshed
         self.insert_test_vendors()
         self.insert_transaction_data()
-        self.table.controls.clear()
+        self.table.controls.clear()  # Clear the table for refresh
 
         # Table Header
         self.table.controls.append(ft.Row([
@@ -215,74 +220,140 @@ class Accounts(ft.View):
             ft.Text("Balance", weight="bold", width=150, color=ft.colors.WHITE, text_align="center", size=24),
             ft.Text("Allocation", weight="bold", width=300, color=ft.colors.WHITE, text_align="center", size=24),
             ft.Text("Transactions", weight="bold", width=300, color=ft.colors.WHITE, text_align="center", size=24),
-            ft.Text("", weight="bold", width=50, size=24)  # Moved delete button over
-        ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))  # Add spacing between columns
+            ft.Text("", width=50)  # Placeholder for delete button column
+        ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
 
         accounts = self.get_accounts()
-        if not accounts:
-            self.table.controls.append(
-                ft.Container(
-                    content=ft.Text("No accounts available.", italic=True, color=ft.colors.GREY_300, size=24),
-                    alignment=ft.alignment.center,
-                )
-            )
-            # self.table.controls.append(ft.Text("No accounts available.", italic=True, color=ft.colors.GREY_300, alignment=ft.alignment.center, size=24))
-
         for account in accounts:
             budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['balance']
-            max_value = balance  # The progress bar max is the initial account balance
 
-            # Fetch transactions for the current budget_accounts_id
-            self.cursor.execute("SELECT description, amount FROM transactions WHERE budget_accounts_id = ?", (budget_accounts_id,))
+            # Calculate updated balance and transactions
+            self.cursor.execute("""
+                SELECT description, amount, transaction_date 
+                FROM transactions 
+                WHERE budget_accounts_id = ? AND the_user = ?
+            """, (budget_accounts_id, self.userid))
+
             transactions = self.cursor.fetchall()
+            
 
-            # Calculate total amount spent
-            total_spent = sum(amount for _, amount in transactions)
+            # Limit the transactions to the most recent 10
+            recent_transactions = transactions[:10] 
+
+            total_spent = sum(amount for _, amount, _ in transactions)
             updated_balance = balance - total_spent
 
-            # Create Dropdown options based on transactions
-            dropdown_options = [f"{description}: ${amount:.2f}" for description, amount in transactions]
-
-            # Create Dropdown
-            dropdown = ft.Dropdown(
-                options=[ft.dropdown.Option(option) for option in dropdown_options],
-                width=300,  # Set width to match the header
-                height=50,  # Set a height to ensure arrow is inside the box
-                on_change=lambda e, name=account_name: print(f"Selected {e.control.value} for account {name}")
-            )
-
-            # Create Progress Bar
+            # Allocation Progress Bar
             progress_bar = ft.ProgressBar(
-                value=updated_balance / max_value if max_value > 0 else 0,
+                value=updated_balance / balance if balance > 0 else 0,
                 width=300,
-                height=10  # Make progress bar taller
+                height=10
             )
 
-            # Delete Button (Now moved further right)
+            # Sub-Table Header (Aligned Properly)
+            sub_table_header = ft.Row(
+                controls=[
+                    ft.Text("Description", weight="bold", width=200, text_align="center", size=18),
+                    ft.Text("Amount", weight="bold", width=150, text_align="center", size=18),
+                    ft.Text("Transaction Date", weight="bold", width=200, text_align="center", size=18),
+                ],
+                spacing=0,  # No spacing here; maintain fixed widths
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            )
+
+            # Sub-Table Rows (Aligned with Header)
+            sub_table_rows = ft.Column(
+                controls=[
+                    ft.Row(
+                        controls=[
+                            ft.Text(description, width=200, text_align="center", size=16),
+                            ft.Text(f"${amount:.2f}", width=150, text_align="center", size=16),
+                            ft.Text(updated_at, width=200, text_align="center", size=16),
+                        ],
+                        spacing=0,  # Ensure no extra horizontal spacing
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ) for description, amount, updated_at in recent_transactions
+                ],
+                spacing=5,  # Spacing between rows
+            )
+
+            # Full Sub-Table Wrapped in a Column
+            sub_table = ft.Container(
+                content=ft.Column(
+                    controls=[sub_table_header, sub_table_rows],
+                    spacing=10,  # Space between header and rows
+                    alignment=ft.MainAxisAlignment.CENTER,  # Center all contents horizontally
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,  # Align all contents vertically
+                ),
+                padding=10,
+            )
+
+
+
+            # Sub-Table (Hidden by Default)
+            sub_table = ft.Container(
+                content=ft.Column([sub_table_header, sub_table_rows]),
+                visible=False,  # Initially hidden
+                padding=10,
+            )
+
+            # Toggle Button for Sub-Table
+            toggle_button = ft.ElevatedButton(
+                text="View Transactions",
+                on_click=lambda e, container=sub_table: self.toggle_sub_table(container),
+                width=150
+            )
+
+            # Delete Button
             delete_button = ft.IconButton(
                 icon=ft.icons.DELETE,
                 icon_color=ft.colors.RED_ACCENT,
                 on_click=lambda e, a=account_name: self.delete_account(a)
             )
 
-            # Add Row to Table
-            self.table.controls.append(ft.Row([
-                ft.Text(account_name, width=200, color=ft.colors.WHITE, text_align="center", size=16),
-                ft.Text(f"${updated_balance:.2f}", width=150, color=ft.colors.WHITE, text_align="center", size=16),
-                ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),
-                ft.Container(content=dropdown, alignment=ft.alignment.center, width=300),  # Adjust width to match the header
-                ft.Container(delete_button, alignment=ft.alignment.center_right, width=50)
-            ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))  # Add spacing between columns
+            # Row Container
+            account_container = ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Text(account_name, width=200, color=ft.colors.WHITE, text_align="center", size=16),
+                        ft.Text(f"${updated_balance:.2f}", width=150, color=ft.colors.WHITE, text_align="center", size=16),
+                        ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),  # Re-added progress bar
+                        ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
+                        ft.Container(content=delete_button, alignment=ft.alignment.center, width=50)
+                    ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
+                    sub_table  # Add sub-table directly beneath the account row
+                ]),
+                padding=10
+            )
 
-        if self.page:
-            self.table.update()
+            # Add account container to the table
+            self.table.controls.append(account_container)
+
+        self.table.update()
+
+    def toggle_sub_table(self, container):
+        """Toggle visibility of a sub-table."""
+        container.visible = not container.visible
+        self.table.update()
+
+
+
 
 
     # TODO: Change the select statement to pull only budget_accounts tied to a specific user_id
     def get_accounts(self):
-        self.cursor.execute("SELECT budget_accounts_id, account_name, balance FROM budget_accounts")
+        # Include a WHERE clause to filter by user_id
+        self.cursor.execute("""
+            SELECT budget_accounts_id, account_name, balance 
+            FROM budget_accounts 
+            WHERE the_user = ?
+        """, (self.userid,))  # Use self.userid to fetch accounts specific to the logged-in user
+
         accounts = self.cursor.fetchall()
         return [{'budget_accounts_id': account[0], 'account_name': account[1], 'balance': account[2]} for account in accounts]
+
 
 
     def delete_account(self, account):
