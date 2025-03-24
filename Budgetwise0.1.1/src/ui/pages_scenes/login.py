@@ -65,7 +65,7 @@ class Login(ft.View):
                                         self.login_button,
                                         ft.Row(
                                             controls=[
-                                                ft.TextButton("Need an account? Register", on_click=lambda e: self.page.go("/create_budget")),
+                                                ft.TextButton("Need an account? Register", on_click=lambda e: self.page.go("/sign_up")),
                                             ],
                                             alignment=ft.MainAxisAlignment.START,
                                             spacing=0,
