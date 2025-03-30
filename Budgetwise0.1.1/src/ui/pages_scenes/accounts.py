@@ -28,7 +28,7 @@ class Accounts(ft.View):
         self.cursor = self.db.cursor()
 
         # Retrieve budget ID for the user
-        self.budgetid = self.get_budget_id(self.userid)
+        self.budgetid = 1 
 
         self.table = ft.Column(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
 
@@ -76,6 +76,10 @@ class Accounts(ft.View):
         ]
     def did_mount(self):
         """Called when the view is first mounted."""
+        if self.user_data != 0:
+            self.userid = self.user_data.user_id
+        
+        self.budgetid = self.get_budget_id(self.userid)
         self.refresh_table()
 
     def get_budget_id(self, user_id):
@@ -88,8 +92,8 @@ class Accounts(ft.View):
 
         try:
             self.cursor.execute(
-                """SELECT budgetID
-                   FROM budgets WHERE the_user = ?""",
+                """SELECT budget_id
+                   FROM budgets WHERE user_id = ?""",
                 (user_id,)
             )
             result = self.cursor.fetchone()
@@ -125,7 +129,7 @@ class Accounts(ft.View):
 
             # SQL insert statement for budget_accounts table
             insert_query = """
-            INSERT INTO budget_accounts (the_user, the_budget, account_name, account_type, balance, savings_goal, notes, importance_rating)
+            INSERT INTO budget_accounts (user_id, budget_id, account_name, account_type, total_allocated_amount, savings_goal, notes, importance_rating)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """
             
@@ -138,7 +142,7 @@ class Accounts(ft.View):
 
     def insert_test_vendors(self):
         try:
-            self.cursor.execute("SELECT COUNT(*) FROM vendor")
+            self.cursor.execute("SELECT COUNT(*) FROM vendors")
             count = self.cursor.fetchone()[0]
             
             if count == 0:
@@ -154,7 +158,7 @@ class Accounts(ft.View):
 
                 # SQL insert statement for vendor table
                 insert_query = """
-                INSERT INTO vendor (the_user, vendor_name)
+                INSERT INTO vendors (user_id, vendor_name)
                 VALUES (?, ?)
                 """
                 
@@ -173,7 +177,7 @@ class Accounts(ft.View):
         count = self.cursor.fetchone()[0]
         
         if count == 0:
-            self.cursor.execute("SELECT vendor_id FROM vendor")
+            self.cursor.execute("SELECT vendor_id FROM vendors")
             vendors = [v[0] for v in self.cursor.fetchall()]
             
             self.cursor.execute("SELECT budget_accounts_id FROM budget_accounts")
@@ -197,7 +201,7 @@ class Accounts(ft.View):
             ]
 
             insert_query = """
-            INSERT INTO transactions (the_user, budget_accounts_id, vendor_id, transaction_type, amount, transaction_date, description, recurring, importance_rating)
+            INSERT INTO transactions (user_id, budget_accounts_id, vendor_id, transaction_type, amount, transaction_date, description, recurring, importance_rating)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
 
@@ -227,13 +231,13 @@ class Accounts(ft.View):
 
         accounts = self.get_accounts()
         for account in accounts:
-            budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['balance']
+            budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['total_allocated_amount']
 
             # Calculate updated balance and transactions
             self.cursor.execute("""
                 SELECT description, amount, transaction_date 
                 FROM transactions 
-                WHERE budget_accounts_id = ? AND the_user = ?
+                WHERE budget_accounts_id = ? AND user_id = ?
             """, (budget_accounts_id, self.userid))
 
             transactions = self.cursor.fetchall()
@@ -311,7 +315,7 @@ class Accounts(ft.View):
             # Delete Button
             delete_button = ft.IconButton(
                 icon=ft.icons.DELETE,
-                icon_color= self.colors.accent_red,
+                icon_color= self.colors.ERROR_RED,
                 on_click=lambda e, a=account_name: self.delete_account(a)
             )
 
@@ -348,18 +352,18 @@ class Accounts(ft.View):
     def get_accounts(self):
         # Include a WHERE clause to filter by user_id
         self.cursor.execute("""
-            SELECT budget_accounts_id, account_name, balance 
+            SELECT budget_accounts_id, account_name, total_allocated_amount
             FROM budget_accounts 
-            WHERE the_user = ?
+            WHERE user_id = ?
         """, (self.userid,))  # Use self.userid to fetch accounts specific to the logged-in user
 
         accounts = self.cursor.fetchall()
-        return [{'budget_accounts_id': account[0], 'account_name': account[1], 'balance': account[2]} for account in accounts]
+        return [{'budget_accounts_id': account[0], 'account_name': account[1], 'total_allocated_amount': account[2]} for account in accounts]
 
 
 
     def delete_account(self, account):
         """Deletes an account and refreshes the table."""
-        self.cursor.execute("DELETE FROM budget_accounts WHERE account_name = ?", (account,))
+        self.cursor.execute("DELETE FROM budget_accounts WHERE account_name and user_id = ?", (account, self.userid,))
         self.db.commit_db()
         self.refresh_table()
