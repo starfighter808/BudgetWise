@@ -1,5 +1,6 @@
 import flet as ft
 from datetime import datetime
+import json
 
 class History(ft.View):
     def __init__(self, page: ft.Page,user_data, NavRail, colors):
@@ -49,14 +50,25 @@ class History(ft.View):
         self.combined_dropdown = self.create_combined_month_year_dropdown(combined_month_year_options)
         self.combined_dropdown.on_change = self.refresh_table
 
-
+        self.reports_button = ft.Container(
+            content=ft.ElevatedButton(
+                text="Reports",
+                on_click=self.reports_button_clicked,
+            ),
+            alignment=ft.alignment.bottom_center,  # Position at the bottom center
+            padding=10,
+            expand=False,
+        )
         content = ft.Column(
             [
                 title_row,
                 self.combined_dropdown,  # Dropdown for combined month-year
                 # ----------------- PAGE CONTENT GOES BELOW -----------------
-                self.scrollable_table
+                self.scrollable_table,
+                self.reports_button
                 # ----------------- PAGE CONTENT GOES ABOVE -----------------
+                
+               
             ],
             expand=True,  # Make content expand to take the remaining space
         )
@@ -118,6 +130,9 @@ class History(ft.View):
             on_change=lambda e: print(f"Selected {e.control.value}")
         )
         return combined_dropdown
+    
+    def reports_button_clicked(self, e):
+        self.page.go("/reports")  # Replace with desired functionality
 
     def get_budget_id(self, user_id):
         """
@@ -130,7 +145,7 @@ class History(ft.View):
         try:
             self.cursor.execute(
                 """SELECT budget_id
-                   FROM budget WHERE user_id = ?""",
+                   FROM budgets WHERE user_id = ?""",
                 (user_id,)
             )
             result = self.cursor.fetchone()

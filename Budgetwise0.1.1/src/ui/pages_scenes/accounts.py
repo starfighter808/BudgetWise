@@ -1,5 +1,6 @@
 import flet as ft
 from datetime import datetime, timedelta
+import json
 
 class Accounts(ft.View):
     def __init__(self, page: ft.Page, user_data, NavRail, colors):
@@ -47,6 +48,11 @@ class Accounts(ft.View):
             expand=True,
             padding=10,
         )
+        self.generate_report_button = ft.ElevatedButton(
+            text="Generate Report",
+            on_click=lambda e: self.store_report(),
+            width=200
+        )
 
         content = ft.Column(
             [
@@ -56,6 +62,7 @@ class Accounts(ft.View):
 
                 self.scrollable_table,
                 # ft.Text("Page Content", size=15, text_align=ft.TextAlign.CENTER),
+                self.generate_report_button,
 
                 # ----------------- PAGE CONTENT GOES ABOVE ----------------- 
             ],
@@ -367,3 +374,47 @@ class Accounts(ft.View):
         self.cursor.execute("DELETE FROM budget_accounts WHERE account_name and user_id = ?", (account, self.userid,))
         self.db.commit_db()
         self.refresh_table()
+
+    def store_report(self):
+        """Store the table data as a report in the database."""
+        try:
+            # Prepare report data
+            report_data = []
+
+            # Gather data from the accounts table
+            accounts = self.get_accounts()  # Assuming this method returns all accounts
+            for account in accounts:
+                budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['total_allocated_amount']
+
+                # Calculate updated balance and transactions
+                self.cursor.execute("""
+                    SELECT description, amount, transaction_date 
+                    FROM transactions 
+                    WHERE budget_accounts_id = ? AND user_id = ?
+                """, (budget_accounts_id, self.userid))
+                transactions = self.cursor.fetchall()
+
+                # Format account data with transactions
+                account_data = {
+                    "account_name": account_name,
+                    "balance": balance,
+                    "transactions": [
+                        {"description": t[0], "amount": t[1], "date": t[2]} for t in transactions
+                    ]
+                }
+                report_data.append(account_data)
+
+            # Serialize the report data as JSON
+            report_json = json.dumps(report_data)
+
+            # Insert the report into the reports table
+            self.cursor.execute("""
+                INSERT INTO reports (user_id, report_type, report_data) 
+                VALUES (?, ?, ?)
+            """, (self.userid, 1, report_json))
+            self.db.commit_db()
+
+            print("Report stored successfully!")
+
+        except Exception as e:
+            print(f"An error occurred while storing the report: {e}")
