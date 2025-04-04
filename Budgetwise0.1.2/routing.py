@@ -2,7 +2,7 @@
 import flet as ft
 
 # Colors
-from colors import Colors
+from src.ui.components.colors import Colors
 
 # Login
 from src.ui.pages_scenes.login import Login
