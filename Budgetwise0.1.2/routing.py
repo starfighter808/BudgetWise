@@ -53,5 +53,4 @@ def view_handler(page: ft.Page, db_instance):
         "/accounts": Accounts(page, user_data, nav_rail, colors),
         "/transactions": Transactions(page, user_data, nav_rail, colors),
         "/history": History(page, user_data, nav_rail, colors),
-        "/reports": Reports(page, user_data, nav_rail, colors),
     }
