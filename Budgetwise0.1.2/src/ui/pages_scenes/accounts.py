@@ -4,7 +4,7 @@ import json
 
 class Accounts(ft.View):
     def __init__(self, page: ft.Page, user_data, NavRail, colors):
-        super().__init__(route="/accounts", bgcolor= colors.BLUE_BACKGROUND)
+        super().__init__(route="/accounts", bgcolor= colors.GREY_BACKGROUND)
 
         self.colors = colors
     
@@ -190,6 +190,13 @@ class Accounts(ft.View):
                 on_click=lambda e, a=account_name: self.delete_account(a)
             )
 
+            edit_button = ft.IconButton(
+                icon=ft.Icons.EDIT,
+                icon_color= self.colors.GREEN_BUTTON,
+                on_click=lambda e, a=account_name: #self.editAccount(a)
+                    print("Heh, gotcha")
+            )
+
             # Row Container
             account_container = ft.Container(
                 content=ft.Column([
@@ -198,6 +205,7 @@ class Accounts(ft.View):
                         ft.Text(f"${updated_balance:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
                         ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),  # Re-added progress bar
                         ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
+                        ft.Container(content=edit_button, alignment=ft.alignment.center, width=50),
                         ft.Container(content=delete_button, alignment=ft.alignment.center, width=50)
                     ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
                     sub_table  # Add sub-table directly beneath the account row
@@ -231,7 +239,10 @@ class Accounts(ft.View):
 
     def delete_account(self, account):
         """Deletes an account and refreshes the table."""
-        self.cursor.execute("DELETE FROM budget_accounts WHERE account_name and user_id = ?", (account, self.userid,))
+        self.cursor.execute(
+            "DELETE FROM budget_accounts WHERE account_name = ? AND user_id = ?",
+            (account, self.userid)
+        )
         self.db.commit_db()
         self.refresh_table()
 

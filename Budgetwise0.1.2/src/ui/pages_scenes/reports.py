@@ -81,7 +81,7 @@ class Reports(ft.AlertDialog):
                 spacing=20,
             ),
             padding=20,
-            bgcolor=self.colors.BLUE_BACKGROUND,
+            bgcolor=self.colors.GREY_BACKGROUND,
             expand=True,
             width=960,
             height=960  # Set the desired width (e.g., 800 pixels)

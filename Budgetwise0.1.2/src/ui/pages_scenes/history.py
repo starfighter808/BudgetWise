@@ -6,7 +6,7 @@ from src.ui.pages_scenes.reports import Reports
 
 class History(ft.View):
     def __init__(self, page: ft.Page,user_data, NavRail, colors):
-        super().__init__(route="/history", bgcolor= colors.BLUE_BACKGROUND)
+        super().__init__(route="/history", bgcolor= colors.GREY_BACKGROUND)
 
         self.controls.append(ft.Text("History"))
         self.user_data = user_data
