@@ -1,8 +1,4 @@
-import sqlite3 as s3
-import string as str
-from .database import (
-    Database,
-)  # This line imports the Database class to give us access to Database functions
+import sqlcipher3 as s3
 from datetime import (
     date,
 )  # this library allows us to get the current date on the user machine in order to allow transaction dating

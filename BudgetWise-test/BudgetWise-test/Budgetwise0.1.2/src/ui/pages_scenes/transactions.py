@@ -5,13 +5,14 @@ from datetime import datetime, timedelta
 class Transactions(ft.View):
     def __init__(self, page: ft.Page, user_data, NavRail, colors, trans_funcs):
         super().__init__(route="/transactions", bgcolor=colors.BLUE_BACKGROUND)
-
-        # TODO: Store userid AFTER user has logged in
-        self.userid = 1
-        # self.userid = self.user_data.get_user_id(self.user_data.username)
+        self.debug_text = ft.Text("Debug output will appear here.", color="red")
+        self.log_debug("Transactions page constructor started")
+        # TODO: Store user_id AFTER user has logged in
+        self.user_id = 1
+        # self.user_id = self.user_data.get_user_id(self.user_data.username)
 
         # Retrieve budget ID for the user
-        self.budgetid = 1
+        self.budget_id = 1
 
         self.controls.append(ft.Text("Transactions"))
 
@@ -21,13 +22,38 @@ class Transactions(ft.View):
             expand=False,  # Make the title row expand to fill available width
         )
 
-        # gather transaction ID's
         self.trans_funcs = trans_funcs
-        returned_trans = self.trans_funcs.getTransactionList(self.userid)
+        self.returned_trans = []
+        #this gets the userid's
+        self.returned_trans = self.trans_funcs.getTransactionList(self.user_id)
+        print(f"Raw transaction IDs: {self.returned_trans}")  # Debug raw data
+
+        # Validate transaction details
         self.transDetails = []
-        # This loop should append the transaction details of all transactions to the list self.transDetails (2D list)
-        for TID in returned_trans:
-            self.transDetails.append(list(self.trans_funcs.getTransactionDetails(TID)))
+        for TID in self.returned_trans:
+            details = self.trans_funcs.getTransactionDetails(TID)
+            print(f"TID {TID} details: {details}")  # Debug
+            
+            if not details or len(details) != 1:  # Check if the outer list has 1 item
+                print(f"⚠️ Invalid details format for TID {TID}: {details}")
+                continue
+            
+            transaction_data = details[0]  # Extract the inner tuple
+            if len(transaction_data) != 7:  # Validate the tuple itself
+                print(f"⚠️ Invalid transaction data for TID {TID}: {transaction_data}")
+                continue
+            
+            self.transDetails.append(list(transaction_data))  # Convert tuple to list
+
+            # details = self.trans_funcs.getTransactionDetails(TID)
+            # print(f"TID {TID} returned: {details} (type: {type(details)})")
+            # self.transDetails.append(list(details))
+        #################################################
+        # DEBUG SECTION
+        #################################################
+        # print("---- Transaction Details Dump ----")
+        # for i, row in enumerate(self.transDetails):
+        #     print(f"Row {i}: {row} (Length: {len(row)})")
 
         data_columns = [
             ft.DataColumn(ft.Text("Budget Account ID")),
@@ -40,9 +66,21 @@ class Transactions(ft.View):
         ]
 
         data_rows = []
-        for row_data in self.transDetails:
-            data_cells = [ft.DataCell(ft.Text(str(item))) for item in row_data]
-            data_rows.append(ft.DataRow(cells=data_cells))
+        try:
+            for row_data in self.transDetails:
+                # Ensure the row has the right number of columns (7)
+                if len(row_data) != 7:
+                    print(f"Skipping malformed row: {row_data}")
+                    continue
+                data_cells = [ft.DataCell(ft.Text(str(item))) for item in row_data]
+                data_rows.append(ft.DataRow(cells=data_cells))
+                if not data_rows:
+                    data_rows.append(
+                        ft.DataRow(cells=[ft.DataCell(ft.Text("No transactions found", color="red"))])
+                    )
+        except Exception as e:
+            print("Error creating data rows:", e)
+
 
         self.table = ft.DataTable(
             columns=data_columns,
@@ -70,6 +108,7 @@ class Transactions(ft.View):
                 title_row,
                 # ----------------- PAGE CONTENT GOES BELOW -----------------
                 self.scrollable_table,
+                self.debug_text,
                 # ----------------- PAGE CONTENT GOES ABOVE -----------------
             ],
             expand=True,  # Make content expand to take the remaining space
@@ -87,3 +126,10 @@ class Transactions(ft.View):
                 expand=True,
             )
         ]
+
+    def log_debug(self, *messages):
+        if not hasattr(self, 'debug_text') or not self.debug_text.page:
+            print("[DEBUG]", *messages)  # Fallback to console
+        else:
+            self.debug_text.value = "\n".join(str(m) for m in messages)
+            self.debug_text.update()
