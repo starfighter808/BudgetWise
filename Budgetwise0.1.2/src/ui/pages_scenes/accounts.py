@@ -1,6 +1,7 @@
 import flet as ft
 from datetime import datetime, timedelta
 import json
+from src.ui.pages_scenes.accounts_popup import MakeEdits
 
 class Accounts(ft.View):
     def __init__(self, page: ft.Page, user_data, NavRail, colors):
@@ -20,9 +21,7 @@ class Accounts(ft.View):
         # Initialize the elements you need
         self.page = page
         self.user_data = user_data
-        # TODO: Store userid AFTER user has logged in
         self.userid = 1
-        # self.userid = self.user_data.get_user_id(self.user_data.username)
         
         # Use the existing database connection from user_data
         self.db = self.user_data.db
@@ -53,6 +52,8 @@ class Accounts(ft.View):
             on_click=lambda e: self.store_report(),
             width=200
         )
+        self.edits_page = MakeEdits(user_data, colors)
+        self.page.overlay.append(self.edits_page)
 
         content = ft.Column(
             [
@@ -85,10 +86,18 @@ class Accounts(ft.View):
         """Called when the view is first mounted."""
         if self.user_data != 0:
             self.userid = self.user_data.user_id
-        
         self.budgetid = self.user_data.budget_id
+        self.edits_page.updateinfo(refresh=self.refresh_table)
         self.refresh_table()
 
+    def edits_button_clicked(self, e):
+        """Handle the button click event and show the Reports popup."""
+        print("Show activated")
+        self.edits_page.refresh_accounts_list()
+        self.edits_page.open_dialog() # Call the show() method of the Reports popup
+        self.page.update()
+    
+    
     def refresh_table(self):
         """Updates the table dynamically whenever accounts are changed."""
         self.table.controls.clear()  # Clear the table for refresh
@@ -193,8 +202,7 @@ class Accounts(ft.View):
             edit_button = ft.IconButton(
                 icon=ft.Icons.EDIT,
                 icon_color= self.colors.GREEN_BUTTON,
-                on_click=lambda e, a=account_name: #self.editAccount(a)
-                    print("Heh, gotcha")
+                on_click=lambda e, a=account_name: self.edits_button_clicked(e=None)
             )
 
             # Row Container
@@ -245,6 +253,7 @@ class Accounts(ft.View):
         )
         self.db.commit_db()
         self.refresh_table()
+        self.edits_page.refresh_accounts_list()
 
     def store_report(self):
         """Store the table data as a report in the database."""

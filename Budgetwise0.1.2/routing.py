@@ -25,6 +25,7 @@ from src.ui.pages_scenes.accounts import Accounts
 from src.ui.pages_scenes.transactions import Transactions
 from src.ui.pages_scenes.history import History
 from src.ui.pages_scenes.reports import Reports
+from src.ui.pages_scenes.accounts_popup import MakeEdits
 
 # user data class
 from src.backend.database_interation.user_data import UserData # <------LOOK HERE
