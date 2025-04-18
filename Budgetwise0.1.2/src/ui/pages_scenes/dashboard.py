@@ -20,6 +20,28 @@ class Dashboard(ft.View):
         else:
             self.userID = 1
         
+        # Get budget data from database
+        self.total_budget = self.get_total_budget()
+        self.budget_accounts = self.get_accounts()
+
+        # Convert accounts to slider-compatible format
+        slider_accounts = [{
+            'name': account['account_name'],
+            'allocated': account['total_allocated_amount'],
+            'current_amount' : account['current_amount'],
+            'original_data': account  # Keep reference to original data
+        } for account in self.budget_accounts]
+
+        # Initialize pie chart reference
+        self.pie_chart = None
+        
+        # Create the slider panel
+        self.slider_panel = BudgetSliderPanel(
+            dashboard=self,
+            total_budget=self.total_budget,
+            accounts=slider_accounts,
+            colors=colors
+        )
 
         title_row = ft.Row( # This is the title of the page
         [
@@ -29,41 +51,6 @@ class Dashboard(ft.View):
         expand=False, 
         )
 
-        # SliderPanel
-        self.budget_accounts_content = ft.Column(controls=[ft.Text("Budget Accounts", 
-                                      size=20, 
-                                      weight="bold",
-                                      color=self.colors.TEXT_COLOR,
-                                      style=ft.TextStyle(ft.alignment.top_center)),
-                              ft.Text("Bills"),
-                              ft.Slider(value=0.3),
-                              ft.Text("Groceries", size=16),
-                              ft.Slider(value=0.3),
-                              ft.Text("Investments", size=16),
-                              ft.Slider(value=0.3),
-                              ft.Text("Savings", size=16),
-                              ft.Slider(value=0.3),
-                              ])
-        # self.budget_accounts_table = ft.Column(spacing=10, alignment=ft.MainAxisAlignment.CENTER)
-
-        # # Wrap the table in a ListView for scrolling
-        # self.scrollable_table = ft.ListView(
-        #     controls=[self.budget_accounts_table],
-        #     expand=True,
-        #     spacing=10,
-        #     padding=10,
-        # )
-
-        # self.slider_panel = ft.Column(alignment=ft.alignment.top_center,
-        #                               controls=[ft.Text("Budget Accounts", 
-        #                                                 size=20, 
-        #                                                 color=self.colors.TEXT_COLOR,
-        #                                                 style=ft.TextStyle(ft.alignment.top_center)), 
-        #                                         self.scrollable_table],)
-
-        # PieChart
-
-        # UpcomingTransactions
         # Upcoming transactions table
         self.transaction_table = ft.Column(spacing=10, 
                       alignment=ft.alignment.top_center,
@@ -75,7 +62,7 @@ class Dashboard(ft.View):
                # top left container (PieChart)
                 ft.Container(
                     expand=5,
-                    content=self.pie_chart(),
+                    content=self.build_pie_chart(),
                     margin=10,
                     padding=10,
                     alignment=ft.alignment.center,
@@ -103,9 +90,7 @@ class Dashboard(ft.View):
             ft.Column(col=5, controls=[
                # right container (Slider Panel)
                 ft.Container(
-                    content= self.budget_accounts_content,
-                    # ft.Text("Budget Accounts", size=20, color=self.colors.TEXT_COLOR), 
-                            #  self.scrollable_table],
+                    content= self.slider_panel.build(),
                     margin=10,
                     padding=10,
                     alignment=ft.alignment.top_center,
@@ -117,6 +102,7 @@ class Dashboard(ft.View):
                 ),
                 ft.ElevatedButton(
                     "Save",
+                    on_click=self.save_budget,
                     tooltip="Save current budget account settings",
                     icon=ft.Icons.SAVE,
                     bgcolor=self.colors.BLACK,
@@ -163,22 +149,47 @@ class Dashboard(ft.View):
         self.page.update()
 
     def get_accounts(self):
-        self.cursor.execute("SELECT budget_accounts_id, account_name, balance FROM budget_accounts WHERE budget_accounts.the_user = ?", self.userID)
+        self.cursor.execute("SELECT budget_accounts_id, account_name, total_allocated_amount, current_amount FROM budget_accounts WHERE budget_accounts.user_id = ?", (self.userID,))
         accounts = self.cursor.fetchall()
-        return [{'budget_accounts_id': account[0], 'account_name': account[1], 'balance': account[2]} for account in accounts]
+        return [{'budget_accounts_id': account[0], 
+                 'account_name': account[1], 
+                 'total_allocated_amount': account[2], 
+                 'current_amount': account[3]
+                } for account in accounts]
     
     def get_transactions(self):
-        query = "SELECT v.vendor_name, t.description, t.transaction_date, t.amount FROM transactions t JOIN vendors v ON t.vendor_id = v.vendor_id WHERE t.the_user = ? AND t.transaction_date > CURRENT_TIMESTAMP"
+        query = "SELECT v.vendor_name, t.description, t.transaction_date, t.amount FROM transactions t JOIN vendors v ON t.vendor_id = v.vendor_id WHERE t.user_id = ? AND t.transaction_date > CURRENT_TIMESTAMP"
         self.cursor.execute(query, (self.userID,))  # needs the comma to be considered a tuple :'c
         transactions = self.cursor.fetchall()
         print(transactions)
         return [{'vendor_name': transaction[0], 'description': transaction[1], 'transaction_date': transaction[2], 'amount': transaction[3]} for transaction in transactions]
 
-    # TODO: Implement this in a way where a user can have multiple budgets
-    def get_budget(self):
-        self.cursor.execute("SELECT budget_accounts_id, account_name, balance FROM budget_accounts WHERE budget_accounts.the_user = ?", self.userID)
-        accounts = self.cursor.fetchall()
-        return [{'budget_accounts_id': account[0], 'account_name': account[1], 'balance': account[2]} for account in accounts]
+    def get_total_budget(self):
+        # Implement this method to get the user's total budget from the database
+        self.cursor.execute("SELECT total_budgeted_amount FROM budgets WHERE user_id = ?", (self.userID,))
+        result = self.cursor.fetchone()
+        return result[0] if result else 5000  # Default value if no budget set
+    
+    def save_budget(self, e):
+        # Save the updated budget allocations to database
+        for account in self.slider_panel.accounts:
+            original_data = account['original_data']
+            self.cursor.execute(
+                "UPDATE budget_accounts SET total_allocated_amount = ? WHERE budget_accounts_id = ?",
+                (account['allocated'], original_data['budget_accounts_id'])
+            )
+        self.db.commit_db()
+
+        # Create and show snackbar
+        snackbar = ft.SnackBar(
+            content=ft.Text("Budget saved successfully!"),
+            action="OK",
+            action_color=self.colors.GREEN_BUTTON,
+            duration=3000
+        )
+        self.page.snack_bar = snackbar
+        snackbar.open = True
+        self.page.update()
 
     def draw_slider_table(self):
         accounts = self.get_accounts()
@@ -224,65 +235,193 @@ class Dashboard(ft.View):
                 ft.Text(f"${amount:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
             ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))  # Add spacing between columns
 
-    # TODO: Needs work badly. Literally ripped from flet documentation
-    def pie_chart(self):
-        normal_radius = 100
-        hover_radius = 120
-        normal_title_style = ft.TextStyle(
-            size=16, color=self.colors.TEXT_COLOR, weight=ft.FontWeight.BOLD
-        )
-        hover_title_style = ft.TextStyle(
-            size=22,
-            color=self.colors.TEXT_COLOR,
-            weight=ft.FontWeight.BOLD,
-            shadow=ft.BoxShadow(blur_radius=2, color=self.colors.BLACK),
-        )
+    def create_pie_chart(self):
+        accounts = self.get_accounts()
+        if not accounts:
+            return ft.Text("No budget accounts found", color=self.colors.TEXT_COLOR)
 
-        def on_chart_event(e: ft.PieChartEvent):
-            for idx, section in enumerate(chart.sections):
-                if idx == e.section_index:
-                    section.radius = hover_radius
-                    section.title_style = hover_title_style
-                else:
-                    section.radius = normal_radius
-                    section.title_style = normal_title_style
-            chart.update()
+        total_allocated = sum(account['total_allocated_amount'] for account in accounts)
+        if total_allocated == 0:
+            return ft.Text("Budget not allocated", color=self.colors.TEXT_COLOR)
 
-        chart = ft.PieChart(
-            sections=[
+        # Create pie chart with adjusted label positioning
+        sections = []
+        colors = [
+            self.colors.GREEN_BUTTON,
+            self.colors.PIE_CHART_YELLOW,
+            self.colors.BLUE_BACKGROUND,
+            ft.colors.ORANGE,
+            ft.colors.PURPLE,
+            ft.colors.TEAL
+        ]
+        
+        for i, account in enumerate(accounts):
+            percentage = (account['total_allocated_amount'] / total_allocated) * 100
+            if percentage < 5:  # Skip labels for very small slices
+                show_title = ""
+            else:
+                show_title = f"{account['account_name']}\n{percentage:.1f}%"
+                
+            sections.append(
                 ft.PieChartSection(
-                    40,
-                    title="40%",
-                    title_style=normal_title_style,
-                    color= self.colors.BLUE_BACKGROUND,
-                    radius=normal_radius,
-                ),
-                ft.PieChartSection(
-                    30,
-                    title="30%",
-                    title_style=normal_title_style,
-                    color=self.colors.PIE_CHART_YELLOW,
-                    radius=normal_radius,
-                ),
-                ft.PieChartSection(
-                    15,
-                    title="15%",
-                    title_style=normal_title_style,
-                    color=self.colors.PIE_CHART_YELLOW,
-                    radius=normal_radius,
-                ),
-                ft.PieChartSection(
-                    15,
-                    title="15%",
-                    title_style=normal_title_style,
-                    color=self.colors.GREEN_BUTTON,
-                    radius=normal_radius,
-                ),
-            ],
+                    percentage,
+                    title=show_title,
+                    title_style=ft.TextStyle(
+                        size=12,
+                        color=self.colors.TEXT_COLOR,
+                        weight=ft.FontWeight.BOLD,
+                        shadow=ft.BoxShadow(blur_radius=2, color=ft.colors.BLACK)
+                    ),
+                    color=colors[i % len(colors)],
+                    radius=100,
+                    title_position=1.3,  # This pushes labels outward
+                )
+            )
+
+        return ft.PieChart(
+            sections=sections,
             sections_space=0,
-            center_space_radius=80,
-            on_chart_event=on_chart_event,
+            center_space_radius=40,
             expand=True,
         )
 
-        return chart
+    def update_pie_chart(self):
+        if not self.pie_chart:
+            return
+
+        accounts = self.get_accounts()
+        total_allocated = sum(account['total_allocated_amount'] for account in accounts)
+        if total_allocated == 0:
+            return
+
+        colors = [
+            self.colors.GREEN_BUTTON,
+            self.colors.PIE_CHART_YELLOW,
+            self.colors.BLUE_BACKGROUND,
+            ft.colors.ORANGE,
+            ft.colors.PURPLE,
+            ft.colors.TEAL
+        ]
+
+        for i, section in enumerate(self.pie_chart.sections):
+            if i < len(accounts):
+                account = accounts[i]
+                percentage = (account['total_allocated_amount'] / total_allocated) * 100
+                section.value = percentage
+                section.title = f"{account['account_name']}\n{percentage:.1f}%"
+                section.color = colors[i % len(colors)]
+            else:
+                section.value = 0
+                section.title = ""
+
+        self.page.update()
+
+    def build_pie_chart(self):
+        return self.create_pie_chart() or ft.Container() # Fallback empty container
+    
+class BudgetSliderPanel:
+    def __init__(self, dashboard, total_budget, accounts, colors):
+        self.dashboard = dashboard
+        self.total_budget = total_budget
+        self.accounts = accounts
+        self.colors = colors
+        self.sliders = {}
+        self.account_labels = {}
+        self.remaining_label = ft.Text(
+            f"Remaining Budget: ${self.calculate_remaining():.2f}",
+            size=16,
+            color=self.colors.TEXT_COLOR
+        )
+        
+    def calculate_remaining(self):
+        total_allocated = sum(acc['allocated'] for acc in self.accounts)
+        return self.total_budget - total_allocated
+        
+    def create_slider_change_handler(self, account):
+        def handler(e):
+            change = e.control.value - account['allocated']
+            remaining = self.calculate_remaining()
+            
+            if change > remaining:
+                e.control.value = account['allocated'] + remaining
+                account['allocated'] = e.control.value
+            else:
+                account['allocated'] = e.control.value
+            
+            # Update the corresponding account in the dashboard's budget_accounts
+            for acc in self.dashboard.budget_accounts:
+                if acc['account_name'] == account['name']:
+                    acc['total_allocated_amount'] = account['allocated']
+                    break
+            
+            # Update UI elements
+            self.account_labels[account['name']].value = f"{account['name']}: ${account['allocated']:.2f}"
+            self.remaining_label.value = f"Remaining Budget: ${self.calculate_remaining():.2f}"
+            self.update_slider_limits()
+            self.dashboard.update_pie_chart()
+            e.page.update()
+        return handler
+    
+    def update_slider_limits(self):
+        remaining = self.calculate_remaining()
+        for account in self.accounts:
+            slider = self.sliders[account['name']]
+            slider.max = account['allocated'] + remaining
+            if slider.value > slider.max:
+                slider.value = slider.max
+                account['allocated'] = slider.max
+    
+    def build(self):
+        header = ft.Column([
+            ft.Text("Budget Allocation", 
+                   size=20, 
+                   weight=ft.FontWeight.BOLD,
+                   color=self.colors.TEXT_COLOR),
+            self.remaining_label,
+            ft.Divider(color=self.colors.TEXT_COLOR)
+        ])
+        
+        scroll_content = ft.Column(spacing=5)
+        
+        for account in self.accounts:
+            remaining = self.calculate_remaining()
+            slider = ft.Slider(
+                min=0,
+                max=account['allocated'] + remaining,
+                value=account['allocated'],
+                divisions=20,
+                label="{value}",
+                active_color=self.colors.GREEN_BUTTON,
+                inactive_color=self.colors.BLUE_BACKGROUND,
+                on_change=self.create_slider_change_handler(account)
+            )
+            self.sliders[account['name']] = slider
+            
+            account_label = ft.Text(
+                f"{account['name']}: ${account['allocated']:.2f}", 
+                size=16,
+                color=self.colors.TEXT_COLOR
+            )
+            self.account_labels[account['name']] = account_label
+            
+            scroll_content.controls.extend([
+                account_label,
+                slider,
+                ft.Divider(height=10, color=ft.colors.TRANSPARENT)
+            ])
+        
+        scrollable_container = ft.Container(
+            content=ft.ListView(
+                controls=[scroll_content],
+                expand=True,
+                spacing=10,
+                padding=10
+            ),
+            height=400,
+            expand=True
+        )
+        
+        return ft.Column([
+            header,
+            scrollable_container
+        ], expand=True)
