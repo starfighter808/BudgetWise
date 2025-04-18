@@ -29,6 +29,7 @@ from src.ui.pages_scenes.accounts_popup import MakeEdits
 
 # user data class
 from src.backend.database_interation.user_data import UserData # <------LOOK HERE
+from src.backend.database_interation.trans_class import Transaction
 
 # components
 from src.ui.components.navigation_rail import NavRail
@@ -38,6 +39,7 @@ def view_handler(page: ft.Page, db_instance):
     user_data = UserData(db_instance) 
     colors = Colors() 
     nav_rail = NavRail(page) 
+    trans_funcs = Transaction(user_data)
 
     return {
         "/login": Login(page, user_data, colors),
@@ -51,6 +53,6 @@ def view_handler(page: ft.Page, db_instance):
         "/reset_password_success": ResetPasswordSuccess(page, colors),
         "/add_budget_accounts": AddBudgetAccounts(page, user_data, colors),
         "/accounts": Accounts(page, user_data, nav_rail, colors),
-        "/transactions": Transactions(page, user_data, nav_rail, colors),
+        "/transactions": Transactions(page, user_data, nav_rail, colors, trans_funcs),
         "/history": History(page, user_data, nav_rail, colors),
     }
