@@ -17,6 +17,7 @@ class MakeEdits(ft.AlertDialog):
         # Initialize accounts and leftover amount
         self.budgets = []
         self.accounts = []
+        self.current_account_id = 0
         self.leftover_amount = 9999.99
         self.total_allocated_amount = 9999.99
         self.budgetName = "PlaceHolder"
@@ -49,7 +50,11 @@ class MakeEdits(ft.AlertDialog):
             label="Description", 
             multiline=True, 
             min_lines=1, 
-            max_lines=4)
+            max_lines=4,
+            text_style=ft.TextStyle(color=colors.TEXT_COLOR),
+            hint_text="What is this account for?",
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND)
+            )
 
         # ListView to display added accounts
         self.accounts_list_view = ft.ListView(
@@ -162,17 +167,27 @@ class MakeEdits(ft.AlertDialog):
                 }
                 for account in budgets
             ]
-            
     def get_accounts(self):
-        # Include a WHERE clause to filter by user_id
+        # Include the notes column and filter by user_id
         self.cursor.execute("""
-            SELECT budget_accounts_id, account_name, total_allocated_amount
+            SELECT budget_accounts_id, account_name, total_allocated_amount, notes
             FROM budget_accounts 
             WHERE user_id = ?
         """, (self.userid,))  # Use self.userid to fetch accounts specific to the logged-in user
 
         accounts = self.cursor.fetchall()
-        return [{'budget_accounts_id': account[0], 'account_name': account[1], 'total_allocated_amount': account[2]} for account in accounts]
+        return [
+            {
+                'budget_accounts_id': account[0],
+                'account_name': account[1],
+                'total_allocated_amount': account[2],
+                'notes': account[3]
+            }
+            for account in accounts
+        ]
+
+
+    
     def refresh_accounts_list(self):
         # Retrieve updated accounts from the DB every time this method is called.
         self.accounts = self.get_accounts()
@@ -181,11 +196,17 @@ class MakeEdits(ft.AlertDialog):
 
         for account in self.accounts:
             # Define a callback to remove the account.
-            # Note: we're capturing the unique account id (assuming it's available as 'budget_accounts_id')
             def remove_account(e, account_id=account['budget_accounts_id']):
-                # Delete the account from the DB (you need to implement this function)
+                # Delete the account from the DB (implement this function)
                 self.delete_account_from_db(account_id)
                 # Refresh the UI after deletion
+                self.refresh_accounts_list()
+
+            # Define a callback to edit the account.
+            def edits_account(e, account_id=account['budget_accounts_id']):
+                # Edit the account using its unique ID.
+                self.edit_account(e, account_id)
+                # Refresh the UI after editing
                 self.refresh_accounts_list()
 
             # Create a UI row to display account information.
@@ -195,14 +216,17 @@ class MakeEdits(ft.AlertDialog):
                         # Displaying account name and allocated amount (from the DB)
                         f"{account['account_name']} - Allocated: ${account['total_allocated_amount']}",
                         expand=True,
+                        color=self.colors.TEXT_COLOR,
                     ),
-                    ft.IconButton(ft.icons.DELETE, on_click=remove_account),
+                    ft.IconButton(ft.icons.EDIT, self.colors.GREEN_BUTTON, on_click=edits_account),
+                    ft.IconButton(ft.icons.DELETE, self.colors.ERROR_RED, on_click=remove_account),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             )
             self.accounts_list_view.controls.append(account_row)
 
         self.accounts_list_view.update()
+
 
 
     def add_account(self, e):
@@ -227,54 +251,68 @@ class MakeEdits(ft.AlertDialog):
             self.account_allocated_field.update()
             return
 
-        if allocated > self.leftover_amount:
-            self.account_allocated_field.error_text = f"Amount exceeds leftover (${self.leftover_amount})"
-            self.account_allocated_field.update()
-            return
-
-        # Build the account information dictionary.
-        account = {
-            "name": name,
-            "total_allocated": allocated,
-            "description": description,
-        }
-
-        # Instead of appending to self.accounts, insert the data into the database.
-        try:
-            # This example assumes you have a table `budget_accounts` with columns
-            # account_name, total_allocated_amount, start_date, end_date, description, and user_id.
-            insert_query = """
-                INSERT INTO budget_accounts (user_id, budget_id, account_name, total_allocated_amount, notes)
-                VALUES (?, ?, ?, ?, ?)
-            """
-            params = (
-                self.userid,
-                self.budget_id,
-                account["name"],
-                account["total_allocated"],
-                account["description"],
+        # If editing an existing account, adjust the check based on the original allocated value.
+        if hasattr(self, "current_account_id") and self.current_account_id is not None:
+            # Retrieve the original allocated amount for the account being edited.
+            original_allocated = next(
+                (acct["total_allocated_amount"] for acct in self.accounts 
+                if acct["budget_accounts_id"] == self.current_account_id), 0
             )
-            self.cursor.execute(insert_query, params)
-            self.db.commit_db()  # Ensure to commit the transaction.
+            # Calculate the effective leftover: leftover plus the current allocation of the account.
+            effective_leftover = self.leftover_amount + original_allocated
+            if allocated > effective_leftover:
+                self.account_allocated_field.error_text = f"Amount exceeds effective leftover (${effective_leftover})"
+                self.account_allocated_field.update()
+                return
+        else:
+            # For new accounts, perform the regular leftover check.
+            if allocated > self.leftover_amount:
+                self.account_allocated_field.error_text = f"Amount exceeds leftover (${self.leftover_amount})"
+                self.account_allocated_field.update()
+                return
+
+        try:
+            if hasattr(self, "current_account_id") and self.current_account_id is not None:
+                # Update the existing account using its primary key.
+                update_query = """
+                    UPDATE budget_accounts
+                    SET account_name = ?, total_allocated_amount = ?, notes = ?
+                    WHERE budget_accounts_id = ?
+                """
+                update_params = (name, allocated, description, self.current_account_id)
+                self.cursor.execute(update_query, update_params)
+                print("Account updated.")
+                # Clear the current_account_id state to switch back to insertion mode.
+                self.current_account_id = None
+            else:
+                # Insert a new account.
+                insert_query = """
+                    INSERT INTO budget_accounts (user_id, budget_id, account_name, total_allocated_amount, notes)
+                    VALUES (?, ?, ?, ?, ?)
+                """
+                insert_params = (self.userid, self.budget_id, name, allocated, description)
+                self.cursor.execute(insert_query, insert_params)
+                print("Account inserted.")
+
+            self.db.commit_db()  # Commit the transaction.
         except Exception as ex:
-            print("Error inserting account:", ex)
+            print("Error handling account:", ex)
             return
 
-        # Optionally, update your leftover amount here if needed.
-        # For example, you might subtract allocated amount from leftover_amount and update the budget display.
+        # Update your leftover amount and refresh UI elements.
         self.update_leftover()
         self.refresh()
-        # Refresh the UI to display the current accounts directly from the DB.
         self.refresh_accounts_list()
-        
 
-        # Clear input fields.
+        # Clear the input fields.
         self.account_name_field.value = ""
         self.account_allocated_field.value = ""
         self.description_field.value = ""
         self.account_name_field.update()
         self.account_allocated_field.update()
         self.description_field.update()
+
+
     
     def delete_account_from_db(self, account):
         """Deletes an account and refreshes the table."""
@@ -286,6 +324,31 @@ class MakeEdits(ft.AlertDialog):
         self.refresh_accounts_list()
         self.refresh()
     
+    def edit_account(self, e, account):
+        # Refresh the accounts list in case it was updated
+        self.refresh_accounts_list()
+        
+        # Find the specific account by ID
+        self.current_account_id = account
+        account = next((acct for acct in self.accounts if acct['budget_accounts_id'] == account), None)
+        if account is None:
+            print("Account not found.")
+            return
+
+        # Pre-fill the fields with the account's data
+        self.account_name_field.value = account['account_name']
+        self.account_allocated_field.value = str(account['total_allocated_amount'])
+        self.description_field.value = account.get('notes')
+
+        # Update UI fields so that changes are visible
+        self.account_name_field.update()
+        self.account_allocated_field.update()
+        self.description_field.update()
+
+        # Open the dialog for editing
+        self.open_dialog()
+
+        
     def close_dialog(self, e):
         self.refresh
         self.open = False

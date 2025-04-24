@@ -52,13 +52,18 @@ class Accounts(ft.View):
             on_click=lambda e: self.store_report(),
             width=200
         )
+        self.Add_accounts_button = ft.ElevatedButton(
+            text="Add Account",
+            on_click=lambda e: self.edits_button_clicked(e=None),
+            width=200
+        )
         self.edits_page = MakeEdits(user_data, colors)
         self.page.overlay.append(self.edits_page)
 
         content = ft.Column(
             [
                 title_row,
-
+                self.Add_accounts_button,
                 # ----------------- PAGE CONTENT GOES BELOW -----------------
 
                 self.scrollable_table,
@@ -97,6 +102,12 @@ class Accounts(ft.View):
         self.edits_page.open_dialog() # Call the show() method of the Reports popup
         self.page.update()
     
+    def update_button(self, e, account):
+        """Handle the button click event and show the Reports popup with specific information to be editted."""
+        print("Show activated")
+        self.edits_page.refresh_accounts_list()
+        self.edits_page.edit_account(e, account) # Call the show() method of the Reports popup
+        self.page.update()
     
     def refresh_table(self):
         """Updates the table dynamically whenever accounts are changed."""
@@ -196,13 +207,13 @@ class Accounts(ft.View):
             delete_button = ft.IconButton(
                 icon=ft.Icons.DELETE,
                 icon_color= self.colors.ERROR_RED,
-                on_click=lambda e, a=account_name: self.delete_account(a)
+                on_click=lambda e, a=budget_accounts_id: self.delete_account(a)
             )
 
             edit_button = ft.IconButton(
                 icon=ft.Icons.EDIT,
                 icon_color= self.colors.GREEN_BUTTON,
-                on_click=lambda e, a=account_name: self.edits_button_clicked(e=None)
+                on_click=lambda e, a=budget_accounts_id: self.update_button(e, a)
             )
 
             # Row Container
@@ -246,14 +257,25 @@ class Accounts(ft.View):
 
 
     def delete_account(self, account):
-        """Deletes an account and refreshes the table."""
+        """Deletes an account if no related transactions exist and refreshes the table."""
+        # Check for related transactions
         self.cursor.execute(
-            "DELETE FROM budget_accounts WHERE account_name = ? AND user_id = ?",
-            (account, self.userid)
+            "SELECT COUNT(*) FROM transactions WHERE budget_id = ?",
+            (account,)
         )
-        self.db.commit_db()
-        self.refresh_table()
-        self.edits_page.refresh_accounts_list()
+        transaction_count = self.cursor.fetchone()[0]  # Get the count
+
+        if transaction_count > 0:
+            # Inform the user that the account can't be deleted
+            print(f"Cannot delete account {account}. There are {transaction_count} related transactions.")
+        else:
+            self.cursor.execute(
+                "DELETE FROM budget_accounts WHERE budget_accounts_id = ? AND user_id = ?",
+                (account, self.userid)
+            )
+            self.db.commit_db()
+            self.refresh_table()
+            self.edits_page.refresh_accounts_list()
 
     def store_report(self):
         """Store the table data as a report in the database."""
