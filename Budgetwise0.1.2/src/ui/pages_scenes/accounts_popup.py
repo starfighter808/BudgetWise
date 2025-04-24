@@ -315,14 +315,26 @@ class MakeEdits(ft.AlertDialog):
 
     
     def delete_account_from_db(self, account):
-        """Deletes an account and refreshes the table."""
+        """Deletes an account if no related transactions exist and refreshes the table."""
+        # Check for related transactions
         self.cursor.execute(
-            "DELETE FROM budget_accounts WHERE budget_accounts_id = ? AND user_id = ?",
-            (account, self.userid)
+            "SELECT COUNT(*) FROM transactions WHERE budget_accounts_id = ?",
+            (account,)
         )
-        self.db.commit_db()
-        self.refresh_accounts_list()
-        self.refresh()
+        transaction_count = self.cursor.fetchone()[0]  # Get the count
+
+        if transaction_count > 0:
+            # Inform the user that the account can't be deleted
+            print(f"Cannot delete account {account}. There are {transaction_count} related transactions.")
+        else:
+            # Proceed with deletion
+            self.cursor.execute(
+                "DELETE FROM budget_accounts WHERE budget_accounts_id = ? AND user_id = ?",
+                (account, self.userid)
+            )
+            self.db.commit_db()
+            self.refresh_accounts_list()
+            self.refresh()
     
     def edit_account(self, e, account):
         # Refresh the accounts list in case it was updated
