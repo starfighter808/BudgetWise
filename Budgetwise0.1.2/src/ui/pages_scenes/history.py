@@ -14,7 +14,7 @@ class History(ft.View):
 
         title_row = ft.Row( # This is the title of the page
         [
-            ft.Text("History", size=30, weight="bold")
+            ft.Text("History", size=30, weight="bold", color=self.colors.TEXT_COLOR)
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         expand=False,
@@ -50,9 +50,10 @@ class History(ft.View):
             padding=10,
         )
 
-        combined_month_year_options = self.get_combined_month_year_options()
-        self.combined_dropdown = self.create_combined_month_year_dropdown(combined_month_year_options)
-        self.combined_dropdown.on_change = self.refresh_table
+        # combined_month_year_options = self.get_combined_month_year_options()
+        # self.combined_dropdown = self.create_combined_month_year_dropdown(combined_month_year_options)
+        reports_options = self.get_combined_report_options()
+        self.report_dropdown=self.create_combined_report_dropdown(reports_options)
 
         self.reports_page = Reports(user_data, colors)
         self.page.overlay.append(self.reports_page)
@@ -68,7 +69,7 @@ class History(ft.View):
         content = ft.Column(
             [
                 title_row,
-                self.combined_dropdown,  # Dropdown for combined month-year
+                self.report_dropdown,  # Dropdown for combined month-year
                 # ----------------- PAGE CONTENT GOES BELOW -----------------
                 self.scrollable_table,
                 self.reports_button
@@ -95,59 +96,71 @@ class History(ft.View):
         # Refresh the dropdown each time the page is routed to
         if self.user_data.user_id != 0:
             self.user_id = self.user_data.user_id
-        self.refresh_combined_month_year_dropdown(self.combined_dropdown)
+        self.refresh_report_dropdown(self.report_dropdown)
         self.reports_page.updateinfo()
 
-    def refresh_combined_month_year_dropdown(self, dropdown):
-        # Get combined month-year options
+    def refresh_report_dropdown(self, dropdown):
+        """
+        Refresh the dropdown to include unique identifiers for specific reports generated on the same day.
+        """
+        # Fetch all reports first
         self.fetch_reports()
-        combined_month_year_options = self.get_combined_month_year_options()
+        
+        # Get combined options with identifiers
+        combined_report_options = self.get_combined_report_options()
         
         # Handle case where no data is available
-        if combined_month_year_options == ["No data available"]:
+        if combined_report_options == ["No data available"]:
             dropdown.options = [ft.dropdown.Option("No options available")]
         else:
-            dropdown.options = [ft.dropdown.Option(option) for option in combined_month_year_options]
+            dropdown.options = [ft.dropdown.Option(option) for option in combined_report_options]
         
         # Update the dropdown UI
         dropdown.update()
 
-    def get_combined_month_year_options(self):
+    def get_combined_report_options(self):
         """
-        Extracts distinct month-year options from self.reports using the 'report_date' key.
-        Returns a list of strings in the format "Month Year" (e.g. "March 2025").
+        Extracts unique report options using the 'report_date' and an identifier (e.g., report ID or type).
+        Returns a list of strings in the format "Month Day, Year - Identifier" (e.g., "March 25, 2025 - Report ID: 123").
         """
         if not self.reports:
             return ["No data available"]
-        
-        # Collect distinct year-month strings (formatted as "YYYY-MM")
-        distinct_ym = set()
-        for report in self.reports:
-            report_date = report.get("report_date", "")
-            if report_date:
-                # Assuming report_date is in format "YYYY-MM-DD ..." or similar,
-                # we extract the first 7 characters to get "YYYY-MM"
-                ym = report_date.split(" ")[0][:7]
-                distinct_ym.add(ym)
-        
-        # Sort the year-month strings (sorting works lexicographically for "YYYY-MM")
-        sorted_ym = sorted(distinct_ym)
-        
+
         # Map month numbers to month names
         month_names = {
-            '01': 'January', '02': 'February', '03': 'March', '04': 'April', 
-            '05': 'May', '06': 'June', '07': 'July', '08': 'August', 
+            '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+            '05': 'May', '06': 'June', '07': 'July', '08': 'August',
             '09': 'September', '10': 'October', '11': 'November', '12': 'December'
         }
-        
-        # Convert "YYYY-MM" into "Month Year" format
+
         options = []
-        for ym in sorted_ym:
-            year, month = ym.split("-")
-            month_name = month_names.get(month, month)
-            options.append(f"{month_name} {year}")
+        for report in self.reports:
+            report_date = report.get("report_date", "")
+            report_id = report.get("report_id", "Unknown ID")  # Use report ID as an identifier
+            if report_date:
+                # Parse the full date format "YYYY-MM-DD"
+                date_parts = report_date.split(" ")[0].split("-")
+                if len(date_parts) == 3:
+                    year, month, day = date_parts
+                    month_name = month_names.get(month, month)
+                    options.append(f"{month_name} {int(day)}, {year} - Report: {report_id}")
         
-        return options
+        # Return sorted options
+        return sorted(options)
+
+    def get_specific_report(self, selected_month_year, selected_report_id):
+        """
+        Retrieves a specific report for the given month/year and the report's unique identifier.
+        """
+        # Get all reports for the provided month and year.
+        reports = self.fetch_json_data(None, selected_month_year)
+        
+        # Look for the report with the specific report_id.
+        for report in reports:
+            if report["report_id"] == selected_report_id:
+                return report
+        
+        return None  # If no matching report is found.
 
     def fetch_reports(self):
         """Fetch all reports for the specific user, including report data, and update self.reports."""
@@ -172,181 +185,242 @@ class History(ft.View):
                     "report_data": report_data,  # Include report_data
                 })
 
-            print("Updated Reports with Data:", self.reports)
-
         except Exception as e:
             print(f"An error occurred while fetching reports: {e}")
 
-    
-    def create_combined_month_year_dropdown(self, options):
-        # Create Dropdown
-        combined_dropdown = ft.Dropdown(
-            options=[ft.dropdown.Option(option) for option in options],
+    def create_combined_report_dropdown(self, options):
+        """
+        Create a Dropdown with detailed options including date and report identifier.
+        The dropdown has a dark gray background so that white text (when selected)
+        is visible.
+        """
+        # Create your dropdown options.
+        dropdown_options = [
+            ft.dropdown.Option(opt, text_style=ft.TextStyle(color=ft.colors.BLACK))
+            for opt in self.get_combined_report_options()
+        ]
+
+        report_dropdown = ft.Dropdown(
+            options=dropdown_options,
             width=200,
-            #height=50,
-            on_change=lambda e: print(f"Selected {e.control.value}")
+            text_style=ft.TextStyle(color=ft.colors.WHITE),  # Selected text in white
+            bgcolor=ft.colors.BLACK,  # Set the background color of the dropdown
+            on_change=lambda e: self.handle_dropdown_selection(e.data)
         )
-        return combined_dropdown
+
+        return report_dropdown
+
+
+
+    def handle_dropdown_selection(self, selected_option):
+
+        try:
+            # Assume the string format is "Month Day, Year - Report: <report_id>"
+            parts = selected_option.split(" - Report:")
+            date_part = parts[0].strip()  # e.g., "April 10, 2025"
+            # Convert date_part to a datetime object; we only need month and year for filtering
+            dt = datetime.strptime(date_part, "%B %d, %Y")
+            selected_month_year = (dt.month, dt.year)
+            
+            # Parse out the report ID
+            selected_report_id = int(parts[1].strip())
+        except Exception as ex:
+            print(f"Error parsing selection: {ex}")
+            return
+
+        # Use the extracted information to retrieve the specific report.
+        report = self.get_specific_report(selected_month_year, selected_report_id)
+        
+        if report:
+            # Call both refresh functions using the same selected_option.
+            # Note: If these functions require an event argument, you can pass None if not coming from an event.
+            self.refresh_table()
+            self.reports_page.refresh_reports(None, selected_option)
+
+
+
     
     def reports_button_clicked(self, e):
         """Handle the button click event and show the Reports popup."""
-        print("Show activated")
         self.reports_page.show() # Call the show() method of the Reports popup
         self.page.update()
 
-        
+
     def refresh_table(self, e=None):
-        """Refresh the table dynamically while maintaining its original structure and filling it with report data from JSON."""
-        selected_month_year = self.combined_dropdown.value
-        print(f"Selected month-year: {selected_month_year}")
-        
+        """
+        Refresh the table dynamically while maintaining its original structure and
+        filling it with report data from JSON based on the specific report chosen from the dropdown.
+        Additionally, for each transaction, if its date is after the report's creation date,
+        mark it with a "Scheduled" tag.
+        """
+        # Obtain the full selected option string from the dropdown.
+        selected_option = self.report_dropdown.value
 
-        if selected_month_year == "No data available":
+        if selected_option == "No data available":
             self.table.controls.clear()
             self.table.controls.append(
-                ft.Text("No reports available for the selected month and year.", italic=True, color=self.colors.GREY_BACKGROUND, size=24)
+                ft.Text("No reports available for the selected month and year.",
+                        italic=True, color=self.colors.GREY_BACKGROUND, size=24)
             )
             self.table.update()
             return
-        self.reports_page.refresh_reports(e, selected_month_year)
+
+        # Parse the dropdown option.
+        # Expected format: "April 10, 2025 - Report: 4"
         try:
-            selected_month, selected_year = self.parse_month_year(selected_month_year)
-            print(f"Selected month: {selected_month}, Selected year: {selected_year}")  # Debug output
-        except ValueError as ve:
-            print(f"Error parsing selected month-year: {ve}")
+            parts = selected_option.split(" - Report:")
+            date_part = parts[0].strip()          # e.g., "April 10, 2025"
+            report_id_str = parts[1].strip()        # e.g., "4"
+            selected_report_id = int(report_id_str)
+
+            # Use datetime.strptime to extract the month and year.
+            dt = datetime.strptime(date_part, "%B %d, %Y")
+            selected_month_year = (dt.month, dt.year)
+        except Exception as ex:
+            print(f"Error parsing selected option: {ex}")
             self.table.controls.clear()
             self.table.controls.append(
-                ft.Text("Invalid date format selected.", italic=True, color=self.colors.ERROR_RED, size=24)
+                ft.Text("Invalid selection format.",
+                        italic=True, color=self.colors.ERROR_RED, size=24)
             )
             self.table.update()
             return
 
-        month_names = {
-            'January': 1, 'February': 2, 'March': 3, 'April': 4,
-            'May': 5, 'June': 6, 'July': 7, 'August': 8,
-            'September': 9, 'October': 10, 'November': 11, 'December': 12
-        }
-        selected_month = month_names.get(selected_month)
-
-        if not selected_month:
-            print(f"Invalid month selected: {selected_month}")
+        # Retrieve the specific report.
+        report = self.get_specific_report(selected_month_year, selected_report_id)
+        if not report:
             self.table.controls.clear()
             self.table.controls.append(
-                ft.Text("Invalid month selected.", italic=True, color=self.colors.ERROR_RED, size=24)
+                ft.Text("No report data found for the selected option.",
+                        italic=True, color=self.colors.GREY_BACKGROUND, size=24)
             )
             self.table.update()
             return
 
-        selected_date_prefix = f"{selected_year}-{selected_month:02d}"
+        # Get the accounts data from the report.
+        accounts = report.get("report_data", [])
+        if not isinstance(accounts, list):
+            accounts = [accounts]
+
+        # Clear the current table controls.
         self.table.controls.clear()
 
-        # Table Header
+        # Table Header Row.
         self.table.controls.append(ft.Row([
-            ft.Text("Account", weight="bold", width=200, color=self.colors.TEXT_COLOR, text_align="center", size=24),
-            ft.Text("Balance", weight="bold", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=24),
-            ft.Text("Allocation", weight="bold", width=300, color=self.colors.TEXT_COLOR, text_align="center", size=24),
-            ft.Text("Transactions", weight="bold", width=300, color=self.colors.TEXT_COLOR, text_align="center", size=24),
+            ft.Text("Account", weight="bold", width=200, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
+            ft.Text("Balance", weight="bold", width=150, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
+            ft.Text("Allocation", weight="bold", width=300, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
+            ft.Text("Transactions", weight="bold", width=300, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
         ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
 
-        # Fetch JSON data and validate
-        parsed_json_data = self.fetch_json_data(e, (selected_month, int(selected_year)))
-        if not parsed_json_data:
-            self.table.controls.append(
-                ft.Text("No data found in reports.", italic=True, color=self.colors.GREY_BACKGROUND, size=24)
+        # No date prefix filtering here—use all transactions.
+        # Get the report creation date.
+        report_creation_dt = report.get("report_date")
+        if isinstance(report_creation_dt, str):
+            try:
+                report_creation_dt = datetime.strptime(report_creation_dt, "%Y-%m-%d %H:%M:%S")
+            except Exception as e:
+                print(f"Error converting report creation date: {e}")
+                report_creation_dt = None
+
+        # Iterate over each account.
+        for account in accounts:
+            account_name = account.get("account_name", "Unnamed Account")
+            balance = account.get("balance", 0)
+            transactions = account.get("transactions", [])
+
+            # Instead of filtering transactions by date, we simply use all transactions.
+            all_transactions = transactions
+
+            total_spent = sum(transaction["amount"] for transaction in all_transactions)
+            updated_balance = balance - total_spent
+
+            # Allocation Progress Bar.
+            progress_bar = ft.ProgressBar(
+                value=updated_balance / balance if balance > 0 else 0,
+                width=300,
+                height=10
             )
-            self.table.update()
-            return
-        for report in parsed_json_data:
-            accounts = report.get("report_data", [])
-            if not isinstance(accounts, list):
-                accounts = [accounts]
-            for account in accounts:
-                account_name = account["account_name"]
-                balance = account["balance"]
-                transactions = account["transactions"]
 
-                # Filter transactions by selected month and year
-                filtered_transactions = [
-                    transaction for transaction in transactions
-                    if transaction["date"].startswith(selected_date_prefix)
+            # Build the sub-table header row with an extra "Status" column.
+            sub_table_header = ft.Row(
+                controls=[
+                    ft.Text("Description", weight="bold", width=200, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
+                    ft.Text("Amount", weight="bold", width=150, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
+                    ft.Text("Transaction Date", weight="bold", width=150, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
+                    ft.Text("Status", weight="bold", width=100, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            )
+
+            # Build sub-table rows for each transaction.
+            sub_table_rows = ft.Column(
+                controls=[
+                    ft.Row(
+                        controls=[
+                            ft.Text(transaction.get("description", ""), width=200, color = self.colors.TEXT_COLOR, text_align="center", size=16),
+                            ft.Text(f"${transaction.get('amount', 0):.2f}", width=150, color = self.colors.TEXT_COLOR, text_align="center", size=16),
+                            ft.Text(transaction.get("date", ""), width=150,  color = self.colors.TEXT_COLOR, text_align="center", size=16),
+                            # Check if transaction date is after report creation date.
+                            (
+                                lambda t_date: ft.Text(
+                                    "Scheduled",
+                                    width=100,
+                                    text_align="center",
+                                    size=16,
+                                    color=self.colors.BLUE_BACKGROUND
+                                ) if t_date and report_creation_dt and t_date.date() > report_creation_dt.date() else ft.Text("", width=100)
+                            )(datetime.strptime(transaction["date"].split()[0], "%Y-%m-%d"))
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ) for transaction in all_transactions
                 ]
+            )
 
-                recent_transactions = filtered_transactions[:10]
-                total_spent = sum(transaction["amount"] for transaction in filtered_transactions)
-                updated_balance = balance - total_spent
+            # Create the sub-table container (hidden by default).
+            sub_table = ft.Container(
+                content=ft.Column([sub_table_header, sub_table_rows]),
+                visible=False,
+                padding=10,
+            )
 
-                # Allocation Progress Bar
-                progress_bar = ft.ProgressBar(
-                    value=updated_balance / balance if balance > 0 else 0,
-                    width=300,
-                    height=10
-                )
+            # Toggle button to show/hide the sub-table.
+            toggle_button = ft.ElevatedButton(
+                text="View Transactions",
+                on_click=lambda e, container=sub_table: self.toggle_sub_table(container),
+                width=150
+            )
 
-                # Sub-Table Header
-                sub_table_header = ft.Row(
-                    controls=[
-                        ft.Text("Description", weight="bold", width=200, text_align="center", size=18),
-                        ft.Text("Amount", weight="bold", width=150, text_align="center", size=18),
-                        ft.Text("Transaction Date", weight="bold", width=200, text_align="center", size=18),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                )
+            # Add the account row (with sub-table) to the main table.
+            self.table.controls.append(ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Text(account_name, width=200, color=self.colors.TEXT_COLOR, text_align="center", size=16),
+                        ft.Text(f"${updated_balance:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
+                        ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),
+                        ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
+                    ], alignment=ft.MainAxisAlignment.CENTER),
+                    sub_table
+                ]),
+                padding=10
+            ))
 
-                # Sub-Table Rows
-                sub_table_rows = ft.Column(
-                    controls=[
-                        ft.Row(
-                            controls=[
-                                ft.Text(transaction["description"], width=200, text_align="center", size=16),
-                                ft.Text(f"${transaction['amount']:.2f}", width=150, text_align="center", size=16),
-                                ft.Text(transaction["date"], width=200, text_align="center", size=16),
-                            ],
-                            alignment=ft.MainAxisAlignment.CENTER,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ) for transaction in recent_transactions
-                    ]
-                )
-
-                # Sub-Table Container (Hidden by Default)
-                sub_table = ft.Container(
-                    content=ft.Column([sub_table_header, sub_table_rows]),
-                    visible=False,
-                    padding=10,
-                )
-
-                # Toggle Button
-                toggle_button = ft.ElevatedButton(
-                    text="View Transactions",
-                    on_click=lambda e, container=sub_table: self.toggle_sub_table(container),
-                    width=150
-                )
-
-                # Account Row Container
-                self.table.controls.append(ft.Container(
-                    content=ft.Column([
-                        ft.Row([
-                            ft.Text(account_name, width=200, color=self.colors.TEXT_COLOR, text_align="center", size=16),
-                            ft.Text(f"${updated_balance:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
-                            ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),
-                            ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
-                        ], alignment=ft.MainAxisAlignment.CENTER),
-                        sub_table
-                    ]),
-                    padding=10
-                ))
-
-        # Refresh the table visually
+        # Finally, update the table display.
         self.table.update()
 
 
 
-    def fetch_json_data(self, e, selected_month_year):
+
+
+
+    def fetch_json_data(self, e, selected_month_year, selected_report_id=None):
         """
         Filter the list self.reports for reports from the specified month and year,
         parse their JSON 'report_data', and return a list of dictionaries formatted for display.
+        If selected_report_id is provided, only include the report with that ID.
         """
-        # Unpack the tuple; expect selected_month_year to be like (3, 2025)
         month, year = selected_month_year
         parsed_reports = []
 
@@ -354,14 +428,15 @@ class History(ft.View):
             try:
                 # Assumes the format is 'YYYY-MM-DD HH:MM:SS'
                 report_date_obj = datetime.strptime(report["report_date"], "%Y-%m-%d %H:%M:%S")
-                # Debug: print the report's month/year
-                print(f"Report ID {report['report_id']} date: {report_date_obj.month}/{report_date_obj.year}")
             except Exception as ex:
                 print(f"Error parsing date for report_id {report['report_id']}: {ex}")
                 continue
 
-            # Only include reports with matching month and year
             if report_date_obj.month == month and report_date_obj.year == year:
+                # If a specific report ID was provided, filter out non-matching reports
+                if selected_report_id is not None and report["report_id"] != selected_report_id:
+                    continue
+
                 try:
                     parsed_data = json.loads(report["report_data"])
                 except Exception as ex:
@@ -372,11 +447,10 @@ class History(ft.View):
                     "report_id": report["report_id"],
                     "report_type": report["report_type"],
                     "report_date": report_date_obj,
-                    "report_data": parsed_data  # This contains your account data
+                    "report_data": parsed_data  # Contains your account data
                 })
-
-        print("Parsed reports ready for display:", parsed_reports)
         return parsed_reports
+
 
     def toggle_sub_table(self, container):
         """Toggle visibility of a sub-table."""

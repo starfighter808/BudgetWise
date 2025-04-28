@@ -13,7 +13,7 @@ class Accounts(ft.View):
 
         title_row = ft.Row( # This is the title of the page
         [
-            ft.Text("Accounts", size=30, weight="bold")
+            ft.Text("Accounts", size=30, weight="bold", color = self.colors.TEXT_COLOR)
         ],
         alignment=ft.MainAxisAlignment.CENTER,
         expand=False,
@@ -59,16 +59,22 @@ class Accounts(ft.View):
         )
         self.edits_page = MakeEdits(user_data, colors)
         self.page.overlay.append(self.edits_page)
-
+        self.button_bar = ft.Row(
+            controls=[
+                self.generate_report_button,
+                self.Add_accounts_button
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,  # or another alignment as needed
+            spacing=10  # space between buttons
+        )
         content = ft.Column(
             [
                 title_row,
-                self.Add_accounts_button,
+                self.button_bar,
                 # ----------------- PAGE CONTENT GOES BELOW -----------------
 
                 self.scrollable_table,
                 # ft.Text("Page Content", size=15, text_align=ft.TextAlign.CENTER),
-                self.generate_report_button,
 
                 # ----------------- PAGE CONTENT GOES ABOVE ----------------- 
             ],
@@ -96,15 +102,15 @@ class Accounts(ft.View):
         self.refresh_table()
 
     def edits_button_clicked(self, e):
-        """Handle the button click event and show the Reports popup."""
-        print("Show activated")
+        """Handle the button click event and show the Accounts popup."""
+        # Reset current_account_id since we are not editing an existing account.
+        self.edits_page.current_account_id = None
         self.edits_page.refresh_accounts_list()
-        self.edits_page.open_dialog() # Call the show() method of the Reports popup
+        self.edits_page.open_dialog()  # Open the Accounts popup dialog
         self.page.update()
     
     def update_button(self, e, account):
         """Handle the button click event and show the Reports popup with specific information to be editted."""
-        print("Show activated")
         self.edits_page.refresh_accounts_list()
         self.edits_page.edit_account(e, account) # Call the show() method of the Reports popup
         self.page.update()
@@ -260,14 +266,20 @@ class Accounts(ft.View):
         """Deletes an account if no related transactions exist and refreshes the table."""
         # Check for related transactions
         self.cursor.execute(
-            "SELECT COUNT(*) FROM transactions WHERE budget_id = ?",
+            "SELECT COUNT(*) FROM transactions WHERE budget_accounts_id = ?",
             (account,)
         )
         transaction_count = self.cursor.fetchone()[0]  # Get the count
 
         if transaction_count > 0:
-            # Inform the user that the account can't be deleted
-            print(f"Cannot delete account {account}. There are {transaction_count} related transactions.")
+            # Build an error message.
+            error_message = f"Cannot delete account {account}. There are {transaction_count} related transactions."
+            # Create and show a SnackBar with the error message.
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text(error_message)
+            )
+            self.page.snack_bar.open = True
+            self.page.update()
         else:
             self.cursor.execute(
                 "DELETE FROM budget_accounts WHERE budget_accounts_id = ? AND user_id = ?",
@@ -276,6 +288,7 @@ class Accounts(ft.View):
             self.db.commit_db()
             self.refresh_table()
             self.edits_page.refresh_accounts_list()
+
 
     def store_report(self):
         """Store the table data as a report in the database."""

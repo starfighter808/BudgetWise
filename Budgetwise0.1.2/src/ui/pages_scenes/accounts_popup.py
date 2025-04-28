@@ -123,7 +123,6 @@ class MakeEdits(ft.AlertDialog):
 
     def updateinfo(self, refresh):
         """Run initialization logic when the popup is displayed."""
-        print("I ran")
         if self.user_data.user_id != 0:
             self.userid = self.user_data.user_id
         self.refresh = refresh
@@ -156,7 +155,6 @@ class MakeEdits(ft.AlertDialog):
                 WHERE user_id = ?
             """, (self.userid,)) 
         budgets = self.cursor.fetchall()
-        print(budgets)
 
         return [
                 {
@@ -244,6 +242,18 @@ class MakeEdits(ft.AlertDialog):
             self.account_name_field.update()
             return
 
+        # --- Duplicate Name Check ---
+        # Exclude the current account if updating. Use lower-case comparison for case insensitivity.
+        existing_names = [
+            acct["account_name"].strip().lower()
+            for acct in self.accounts
+            if (not hasattr(self, "current_account_id") or acct["budget_accounts_id"] != self.current_account_id)
+        ]
+        if name.lower() in existing_names:
+            self.account_name_field.error_text = "Account name already exists. Please choose a different name."
+            self.account_name_field.update()
+            return
+
         try:
             allocated = float(allocated_str)
         except ValueError:
@@ -313,6 +323,7 @@ class MakeEdits(ft.AlertDialog):
         self.description_field.update()
 
 
+
     
     def delete_account_from_db(self, account):
         """Deletes an account if no related transactions exist and refreshes the table."""
@@ -325,7 +336,13 @@ class MakeEdits(ft.AlertDialog):
 
         if transaction_count > 0:
             # Inform the user that the account can't be deleted
-            print(f"Cannot delete account {account}. There are {transaction_count} related transactions.")
+            error_message = f"Cannot delete account {account}. There are {transaction_count} related transactions."
+            # Create and show a SnackBar with the error message.
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text(error_message)
+            )
+            self.page.snack_bar.open = True
+            self.page.update()
         else:
             # Proceed with deletion
             self.cursor.execute(
