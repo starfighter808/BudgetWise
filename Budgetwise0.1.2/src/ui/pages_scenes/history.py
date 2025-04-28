@@ -245,13 +245,12 @@ class History(ft.View):
         self.reports_page.show() # Call the show() method of the Reports popup
         self.page.update()
 
-
     def refresh_table(self, e=None):
         """
         Refresh the table dynamically while maintaining its original structure and
         filling it with report data from JSON based on the specific report chosen from the dropdown.
         Additionally, for each transaction, if its date is after the report's creation date,
-        mark it with a "Scheduled" tag.
+        mark it with a "Scheduled" tag and DO NOT include it in the balance calculation.
         """
         # Obtain the full selected option string from the dropdown.
         selected_option = self.report_dropdown.value
@@ -313,14 +312,13 @@ class History(ft.View):
             ft.Text("Transactions", weight="bold", width=300, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
         ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
 
-        # No date prefix filtering here—use all transactions.
         # Get the report creation date.
         report_creation_dt = report.get("report_date")
         if isinstance(report_creation_dt, str):
             try:
                 report_creation_dt = datetime.strptime(report_creation_dt, "%Y-%m-%d %H:%M:%S")
-            except Exception as e:
-                print(f"Error converting report creation date: {e}")
+            except Exception as ex:
+                print(f"Error converting report creation date: {ex}")
                 report_creation_dt = None
 
         # Iterate over each account.
@@ -329,26 +327,40 @@ class History(ft.View):
             balance = account.get("balance", 0)
             transactions = account.get("transactions", [])
 
-            # Instead of filtering transactions by date, we simply use all transactions.
-            all_transactions = transactions
+            total_spent = 0  # This will only accumulate amounts from non-scheduled (completed) transactions.
+            display_transactions = []  # Holds transactions along with their status.
 
-            total_spent = sum(transaction["amount"] for transaction in all_transactions)
+            # Process each transaction.
+            for transaction in transactions:
+                # Assume transaction date is formatted as "YYYY-MM-DD" (or similar).
+                txn_date = datetime.strptime(transaction["date"].split()[0], "%Y-%m-%d")
+                # If the transaction date is after the report creation date, mark it as scheduled.
+                if report_creation_dt and txn_date.date() > report_creation_dt.date():
+                    status = "Scheduled"
+                else:
+                    status = ""
+                    total_spent += transaction.get("amount", 0)
+                display_transactions.append(
+                    (
+                        transaction.get("description", ""),
+                        transaction.get("amount", 0),
+                        transaction.get("date", ""),
+                        status
+                    )
+                )
+
             updated_balance = balance - total_spent
 
-            # Allocation Progress Bar.
-            progress_bar = ft.ProgressBar(
-                value=updated_balance / balance if balance > 0 else 0,
-                width=300,
-                height=10
-            )
+            # Instead of a standard progress bar, use the custom meter widget.
+            custom_meter = self.create_custom_meter(balance, updated_balance, width=300, height=10)
 
             # Build the sub-table header row with an extra "Status" column.
             sub_table_header = ft.Row(
                 controls=[
-                    ft.Text("Description", weight="bold", width=200, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
-                    ft.Text("Amount", weight="bold", width=150, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
-                    ft.Text("Transaction Date", weight="bold", width=150, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
-                    ft.Text("Status", weight="bold", width=100, color = self.colors.GREEN_BUTTON, text_align="center", size=18),
+                    ft.Text("Description", weight="bold", width=200, color=self.colors.GREEN_BUTTON, text_align="center", size=18),
+                    ft.Text("Amount", weight="bold", width=150, color=self.colors.GREEN_BUTTON, text_align="center", size=18),
+                    ft.Text("Transaction Date", weight="bold", width=150, color=self.colors.GREEN_BUTTON, text_align="center", size=18),
+                    ft.Text("Status", weight="bold", width=100, color=self.colors.GREEN_BUTTON, text_align="center", size=18),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -359,23 +371,20 @@ class History(ft.View):
                 controls=[
                     ft.Row(
                         controls=[
-                            ft.Text(transaction.get("description", ""), width=200, color = self.colors.TEXT_COLOR, text_align="center", size=16),
-                            ft.Text(f"${transaction.get('amount', 0):.2f}", width=150, color = self.colors.TEXT_COLOR, text_align="center", size=16),
-                            ft.Text(transaction.get("date", ""), width=150,  color = self.colors.TEXT_COLOR, text_align="center", size=16),
-                            # Check if transaction date is after report creation date.
-                            (
-                                lambda t_date: ft.Text(
-                                    "Scheduled",
-                                    width=100,
-                                    text_align="center",
-                                    size=16,
-                                    color=self.colors.BLUE_BACKGROUND
-                                ) if t_date and report_creation_dt and t_date.date() > report_creation_dt.date() else ft.Text("", width=100)
-                            )(datetime.strptime(transaction["date"].split()[0], "%Y-%m-%d"))
+                            ft.Text(desc, width=200, color=self.colors.TEXT_COLOR, text_align="center", size=16),
+                            ft.Text(f"${amount:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
+                            ft.Text(date, width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
+                            ft.Text(
+                                status,
+                                width=100,
+                                text_align="center",
+                                size=16,
+                                color=self.colors.BLUE_BACKGROUND if status == "Scheduled" else self.colors.TEXT_COLOR,
+                            ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ) for transaction in all_transactions
+                    ) for desc, amount, date, status in display_transactions
                 ]
             )
 
@@ -393,13 +402,13 @@ class History(ft.View):
                 width=150
             )
 
-            # Add the account row (with sub-table) to the main table.
+            # Assemble the account row, with the custom meter in place of the standard progress bar.
             self.table.controls.append(ft.Container(
                 content=ft.Column([
                     ft.Row([
                         ft.Text(account_name, width=200, color=self.colors.TEXT_COLOR, text_align="center", size=16),
                         ft.Text(f"${updated_balance:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
-                        ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),
+                        ft.Container(content=custom_meter, alignment=ft.alignment.center, width=300),
                         ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
                     ], alignment=ft.MainAxisAlignment.CENTER),
                     sub_table
@@ -410,6 +419,59 @@ class History(ft.View):
         # Finally, update the table display.
         self.table.update()
 
+
+
+
+    def create_custom_meter(self, allocated_balance, current_balance, width=300, height=10):
+        """
+        Returns a custom meter widget showing the allocated amount.
+        
+        - When current_balance is positive, the green portion fills rightward.
+        - When current_balance is negative (overspent), a red bar extends to the left.
+        """
+        # Compute ratios based on the allocated (total) balance.
+        if current_balance >= 0:
+            positive_ratio = min(current_balance / allocated_balance, 1.0)
+            negative_ratio = 0
+        else:
+            positive_ratio = 0
+            negative_ratio = min(abs(current_balance) / allocated_balance, 1.0)
+
+        # Base container represents the full allocated balance.
+        base_container = ft.Container(
+            width=width,
+            height=height,
+            bgcolor=ft.colors.GREY_300,
+            border_radius=5,
+        )
+
+        # Green container will fill from the left for positive funds.
+        positive_container = ft.Container(
+            width=width * positive_ratio,
+            height=height,
+            bgcolor=ft.colors.GREEN,
+            border_radius=5,
+            alignment=ft.alignment.center_left,
+        )
+
+        # Red container represents overspending (drawn to the left).
+        negative_container = ft.Container(
+            width=width * negative_ratio,
+            height=height,
+            bgcolor=ft.colors.RED,
+            border_radius=5,
+            alignment=ft.alignment.center_right,
+        )
+
+        # Use a Stack to overlay the containers.
+        meter = ft.Stack(
+            controls=[
+                base_container,
+                positive_container,
+                negative_container,
+            ]
+        )
+        return meter
 
 
 

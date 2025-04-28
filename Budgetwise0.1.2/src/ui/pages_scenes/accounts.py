@@ -114,9 +114,9 @@ class Accounts(ft.View):
         self.edits_page.refresh_accounts_list()
         self.edits_page.edit_account(e, account) # Call the show() method of the Reports popup
         self.page.update()
-    
+
     def refresh_table(self):
-        """Updates the table dynamically whenever accounts are changed."""
+        """Updates the table dynamically and uses a custom meter to show overspending."""
         self.table.controls.clear()  # Clear the table for refresh
 
         # Table Header
@@ -130,75 +130,81 @@ class Accounts(ft.View):
 
         accounts = self.get_accounts()
         for account in accounts:
-            budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['total_allocated_amount']
+            # Extract basic account information
+            budget_accounts_id = account['budget_accounts_id']
+            account_name = account['account_name']
+            allocated_balance = account['total_allocated_amount']
 
-            # Calculate updated balance and transactions
+            # Retrieve transactions for the account.
             self.cursor.execute("""
                 SELECT description, amount, transaction_date 
                 FROM transactions 
                 WHERE budget_accounts_id = ? AND user_id = ?
             """, (budget_accounts_id, self.userid))
-
             transactions = self.cursor.fetchall()
-            
 
-            # Limit the transactions to the most recent 10
-            recent_transactions = transactions[:10] 
+            # Use report_creation_dt to separate completed from scheduled transactions.
+            report_creation_dt = datetime.now()  # or your specific report creation timestamp
+            completed_total = 0.0
+            # Prepare a list for displaying transactions (including scheduled status)
+            display_transactions = []
+            for description, amount, transaction_date in transactions:
+                # Assume transaction_date is formatted as "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS"
+                transaction_dt = datetime.strptime(transaction_date.split()[0], "%Y-%m-%d")
+                if transaction_dt <= report_creation_dt:
+                    completed_total += amount
+                    status = ""  # Transaction is finalized
+                else:
+                    status = "Scheduled"  # Future transaction
+                display_transactions.append((description, amount, transaction_date, status))
 
-            total_spent = sum(amount for _, amount, _ in transactions)
-            updated_balance = balance - total_spent
+            # Calculate updated balance using only completed transactions.
+            updated_balance = allocated_balance - completed_total
 
-            # Allocation Progress Bar
-            progress_bar = ft.ProgressBar(
-                value=updated_balance / balance if balance > 0 else 0,
-                width=300,
-                height=10
-            )
+            # Create the custom meter using the allocated and updated balances.
+            custom_meter = self.create_custom_meter(allocated_balance, updated_balance, width=300, height=10)
 
-            # Sub-Table Header (Aligned Properly)
+            # Build the Sub-Table Header (adding a "Status" column if needed).
             sub_table_header = ft.Row(
                 controls=[
                     ft.Text("Description", weight="bold", width=200, text_align="center", size=18),
                     ft.Text("Amount", weight="bold", width=150, text_align="center", size=18),
                     ft.Text("Transaction Date", weight="bold", width=200, text_align="center", size=18),
+                    ft.Text("Status", weight="bold", width=100, text_align="center", size=18),
                 ],
-                spacing=0,  # No spacing here; maintain fixed widths
+                spacing=0,
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
 
-            # Sub-Table Rows (Aligned with Header)
+            # Build the Sub-Table Rows for transactions.
             sub_table_rows = ft.Column(
                 controls=[
                     ft.Row(
                         controls=[
                             ft.Text(description, width=200, text_align="center", size=16),
                             ft.Text(f"${amount:.2f}", width=150, text_align="center", size=16),
-                            ft.Text(updated_at, width=200, text_align="center", size=16),
+                            ft.Text(transaction_date, width=200, text_align="center", size=16),
+                            ft.Text(
+                                status,
+                                width=100,
+                                text_align="center",
+                                size=16,
+                                color=self.colors.BLUE_BACKGROUND if status == "Scheduled" else self.colors.TEXT_COLOR,
+                            ),
                         ],
-                        spacing=0,  # Ensure no extra horizontal spacing
+                        spacing=0,
                         alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ) for description, amount, updated_at in recent_transactions
+                    ) for description, amount, transaction_date, status in display_transactions
                 ],
-                spacing=5,  # Spacing between rows
+                spacing=5,
             )
 
-            # Full Sub-Table Wrapped in a Column
-            sub_table = ft.Container(
-                content=ft.Column(
-                    controls=[sub_table_header, sub_table_rows],
-                    spacing=10,  # Space between header and rows
-                    alignment=ft.MainAxisAlignment.CENTER,  # Center all contents horizontally
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,  # Align all contents vertically
-                ),
-                padding=10,
-            )
-
-            # Sub-Table (Hidden by Default)
+            # Wrap the sub-table in a Container (initially hidden)
             sub_table = ft.Container(
                 content=ft.Column([sub_table_header, sub_table_rows]),
-                visible=False,  # Initially hidden
+                visible=False,
                 padding=10,
             )
 
@@ -209,39 +215,43 @@ class Accounts(ft.View):
                 width=150
             )
 
-            # Delete Button
+            # Additional Buttons for edit and deletion.
             delete_button = ft.IconButton(
                 icon=ft.Icons.DELETE,
-                icon_color= self.colors.ERROR_RED,
+                icon_color=self.colors.ERROR_RED,
                 on_click=lambda e, a=budget_accounts_id: self.delete_account(a)
             )
-
             edit_button = ft.IconButton(
                 icon=ft.Icons.EDIT,
-                icon_color= self.colors.GREEN_BUTTON,
+                icon_color=self.colors.GREEN_BUTTON,
                 on_click=lambda e, a=budget_accounts_id: self.update_button(e, a)
             )
 
-            # Row Container
+            # Compose the account row. Instead of a standard progress bar we now show our custom_meter.
+            account_row = ft.Row([
+                ft.Text(account_name, width=200, color=self.colors.TEXT_COLOR, text_align="center", size=16),
+                ft.Text(f"${updated_balance:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
+                ft.Container(content=custom_meter, alignment=ft.alignment.center, width=300),
+                ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
+                ft.Container(content=edit_button, alignment=ft.alignment.center, width=50),
+                ft.Container(content=delete_button, alignment=ft.alignment.center, width=50)
+            ], spacing=10, alignment=ft.MainAxisAlignment.CENTER)
+
+            # Combine the account row and the (initially hidden) sub-table.
             account_container = ft.Container(
                 content=ft.Column([
-                    ft.Row([
-                        ft.Text(account_name, width=200, color=self.colors.TEXT_COLOR, text_align="center", size=16),
-                        ft.Text(f"${updated_balance:.2f}", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=16),
-                        ft.Container(content=progress_bar, alignment=ft.alignment.center, width=300),  # Re-added progress bar
-                        ft.Container(content=toggle_button, alignment=ft.alignment.center, width=300),
-                        ft.Container(content=edit_button, alignment=ft.alignment.center, width=50),
-                        ft.Container(content=delete_button, alignment=ft.alignment.center, width=50)
-                    ], spacing=10, alignment=ft.MainAxisAlignment.CENTER),
-                    sub_table  # Add sub-table directly beneath the account row
+                    account_row,
+                    sub_table  # The transaction sub-table, which can be toggled.
                 ]),
                 padding=10
             )
 
-            # Add account container to the table
+            # Add the completed account container to the table.
             self.table.controls.append(account_container)
 
-        self.table.update()
+        self.table.update()  # Finally, update the table to refresh the UI.
+
+
 
     def toggle_sub_table(self, container):
         """Toggle visibility of a sub-table."""
@@ -260,6 +270,60 @@ class Accounts(ft.View):
         accounts = self.cursor.fetchall()
         return [{'budget_accounts_id': account[0], 'account_name': account[1], 'total_allocated_amount': account[2]} for account in accounts]
 
+    def create_custom_meter(self, allocated_balance, current_balance, width=300, height=10):
+        """
+        Returns a custom widget that simulates a progress bar which can show negative values.
+        
+        - For a positive or zero balance, a green bar fills to the right.
+        - For a negative balance, a red bar extends to the left.
+        """
+        # Determine the positive (green) and negative (red) ratios.
+        if current_balance >= 0:
+            # A positive meter: fill the green portion up to the percentage of allocated_balance.
+            positive_ratio = min(current_balance / allocated_balance, 1.0)
+            negative_ratio = 0
+        else:
+            # If overspent, no green fill but a red bar proportional to the overspend.
+            positive_ratio = 0
+            negative_ratio = min(abs(current_balance) / allocated_balance, 1.0)
+
+        # Base container that represents the full allocated balance.
+        base_container = ft.Container(
+            width=width,
+            height=height,
+            bgcolor=ft.colors.GREY_300,
+            border_radius=5,
+        )
+
+        # Green container (positive) fills from the left.
+        positive_container = ft.Container(
+            width=width * positive_ratio,
+            height=height,
+            bgcolor=ft.colors.GREEN,
+            border_radius=5,
+            alignment=ft.alignment.center_left,
+        )
+
+        # Red container (negative) will visually represent overspending.
+        # Note that using a Stack lets us overlay these containers.
+        negative_container = ft.Container(
+            width=width * negative_ratio,
+            height=height,
+            bgcolor=ft.colors.RED,
+            border_radius=5,
+            alignment=ft.alignment.center_right,
+        )
+
+        # Use a Stack so that both effects are visible.
+        meter = ft.Stack(
+            controls=[
+                base_container,
+                positive_container,
+                negative_container,
+            ]
+        )
+
+        return meter
 
 
     def delete_account(self, account):
