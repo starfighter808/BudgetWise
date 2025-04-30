@@ -2,7 +2,7 @@ import flet as ft
 
 class EditBudget(ft.AlertDialog):
     def __init__(self, user_data, colors, on_close=None):
-        super().__init__(modal=True, bgcolor=colors.BLUE_BACKGROUND)
+        super().__init__(modal=True, bgcolor=colors.GREY_BACKGROUND)
 
         self.user_data = user_data
         self.colors = colors
@@ -10,13 +10,33 @@ class EditBudget(ft.AlertDialog):
 
         self.initial_name = ""
         self.initial_amount = 0.0
+        self.budget = []
 
         # Prefill with current budget data
-        current_name = self.user_data.budget_name
-        current_amount = self.user_data.budget_amount
+        self.userid = self.user_data.user_id
+        self.budget_id = 0
+        self.current_name = self.user_data.budget_name
+        self.current_amount = self.user_data.budget_amount
 
-        self.budget_name = ft.TextField(label="Budget Name", value=current_name)
-        self.budget_amount = ft.TextField(label="Budget Amount", value=str(current_amount), keyboard_type=ft.KeyboardType.NUMBER)
+        self.refresh = None
+
+        self.db = self.user_data.db
+        self.cursor = self.db.cursor()
+
+        self.budget_name = ft.TextField(
+            label="Budget Name", 
+            value=self.current_name, 
+            text_style=ft.TextStyle(color=colors.TEXT_COLOR),
+            hint_text="What you want your Budget to be called",
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND))
+        self.budget_amount = ft.TextField(
+            label="Budget Amount", 
+            value=str(self.current_amount),
+              keyboard_type=ft.KeyboardType.NUMBER,
+              text_style=ft.TextStyle(color=colors.TEXT_COLOR),
+            hint_text="How much you make",
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND)
+            )
 
         # Save button
         self.save_button = ft.TextButton(
@@ -100,30 +120,69 @@ class EditBudget(ft.AlertDialog):
             )
         )
 
+    
+    def updateinfo(self, refresh):
+        if self.user_data != 0:
+            self.userid = self.user_data.user_id
+        self.budget = self.get_budget()
+        if self.budget:
+            # If there's only one, this loop still works fine; it'll iterate once.
+            for budget_entry in self.budget:
+                # Extract budget name and total amount.
+                self.budget_id = budget_entry.get('budget_id')
+                self.current_name = budget_entry.get('budget_name')
+                self.current_amount = budget_entry.get('total_budgeted_amount')
+                
+        self.initial_name = self.current_name
+        self.initial_amount = float(self.current_amount)
+        self.refresh = refresh
+    
+    def updateinformation(self):
+        if self.user_data != 0:
+            self.userid = self.user_data.user_id
+        self.budget = self.get_budget()
+        if self.budget:
+            # If there's only one, this loop still works fine; it'll iterate once.
+            for budget_entry in self.budget:
+                # Extract budget name and total amount.
+                self.budget_id = budget_entry.get('budget_id')
+                self.current_name = budget_entry.get('budget_name')
+                self.current_amount = budget_entry.get('total_budgeted_amount')
+        
+        self.initial_name = self.current_name
+        self.initial_amount = float(self.current_amount)
+        print(self.userid )
+    
+    def get_budget(self):
+        self.cursor.execute("""
+            SELECT budget_id, budget_name, total_budgeted_amount
+            FROM budgets
+            WHERE user_id = ?
+        """, (self.userid,))  # Fetch accounts specific to the logged-in user
+
+        budget = self.cursor.fetchall()
+        return [{'budget_id': b[0], 'budget_name': b[1], 'total_budgeted_amount': b[2]} for b in budget]
+
+
+
     def open_dialog(self):
-        print("Opening dialog...")
-        current_name = self.user_data.budget_name
-        current_amount = self.user_data.budget_amount
-        self.initial_name = current_name
-        self.initial_amount = float(current_amount)
+        # Ensure internal state is updated before displaying dialog
+        self.updateinformation()
 
-        print(f"Initial name: {self.initial_name}, initial amount: {self.initial_amount}")
-
-        self.budget_name.value = current_name
-        self.budget_amount.value = str(current_amount)
+        # Now update the dialog with the latest information
+        self.budget_name.value = self.current_name
+        self.budget_amount.value = str(self.current_amount)
 
         self.open = True
-        self.page.dialog = self
-        self.page.update()
+        self.update()
+
 
     def close_dialog(self, e=None):
-        print("Closing dialog...")
+        self.refresh()
         self.open = False
-        self.page.dialog = None
-        self.page.update()
+        self.update()
 
     def prompt_confirmation(self, e):
-        print("Save button clicked!")
         # Reset any previous error state
         self.budget_name.error_text = ""
         self.budget_amount.error_text = ""
@@ -131,11 +190,8 @@ class EditBudget(ft.AlertDialog):
         name = self.budget_name.value.strip()
         amount_str = self.budget_amount.value.strip()
 
-        print(f"Entered name: {name}, entered amount: {amount_str}")
-
         # Validate name
         if not name:
-            print("Budget name is empty!")
             self.budget_name.error_text = "Budget name cannot be empty"
             self.budget_name.update()
             return
@@ -144,70 +200,37 @@ class EditBudget(ft.AlertDialog):
         try:
             amount = float(amount_str)
             if round(amount, 2) != amount:
-                print(f"Invalid amount: {amount_str}")
                 raise ValueError()
         except ValueError:
-            print("Amount is invalid!")
             self.budget_amount.error_text = "Enter a valid amount (up to 2 decimal places)"
             self.budget_amount.update()
             return
 
         # Check if changes actually occurred
         if name == self.initial_name and amount == self.initial_amount:
-            print("No changes detected.")
             self.close_dialog()
             self.page.snack_bar = ft.SnackBar(
                 content=ft.Text("No changes made."),
                 bgcolor=self.colors.GREY_BACKGROUND
             )
             self.page.snack_bar.open = True
-            self.page.update()
+            self.update()
             return
-
-        def on_confirm_update(_):
+        else:
             print("Confirming update...")
-            self.page.dialog = None  # Close confirmation popup
-            self.page.update()
             self.update_budget(name, amount)
+        
 
-        def on_cancel(_):
-            print("Canceling update...")
-            self.page.dialog = None
-            self.page.update()
 
-        confirmation_dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Confirm Update", size=20, weight=ft.FontWeight.BOLD),
-            content=ft.Text("Are you sure you want to update this budget?"),
-            actions=[
-                ft.TextButton("Cancel", on_click=on_cancel),
-                ft.TextButton("Yes", on_click=on_confirm_update),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-
-        self.page.dialog = confirmation_dialog
-        confirmation_dialog.open = True
-        self.page.update()
 
     def update_budget(self, name, amount):
-        print(f"Updating budget to {name}, {amount}")
         # Update data and database
-        self.user_data.budget_name = name
-        self.user_data.budget_amount = amount
-        self.user_data.update_budget(name, amount)
+        self.cursor.execute(
+            "UPDATE budgets SET budget_name = ?, total_budgeted_amount = ? WHERE budget_id = ? AND user_id = ?",
+            (name, amount, self.budget_id, self.userid)
+        )
+        self.db.commit_db()
 
         # Close the edit dialog
         self.close_dialog()
 
-        # Refresh main UI
-        if self.on_close:
-            self.on_close()
-
-        # Snackbar confirmation
-        self.page.snack_bar = ft.SnackBar(
-            content=ft.Text("Budget updated successfully!"),
-            bgcolor=self.colors.GREEN_BUTTON
-        )
-        self.page.snack_bar.open = True
-        self.page.update()

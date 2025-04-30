@@ -108,10 +108,14 @@ class Accounts(ft.View):
         ]
     def did_mount(self):
         """Called when the view is first mounted."""
+        self.updateinfo()
+    
+    def updateinfo(self):
         if self.user_data != 0:
             self.userid = self.user_data.user_id
         self.budgetid = self.user_data.budget_id
-        self.edits_page.updateinfo(refresh=self.refresh_table)
+        self.edit_budget_page.updateinfo(refresh=self.updateinfo)
+        self.edits_page.updateinfo(refresh=self.updateinfo)
         self.refresh_table()
 
     def open_edit_budget_popup(self, e):
