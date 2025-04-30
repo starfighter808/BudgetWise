@@ -108,12 +108,16 @@ class Accounts(ft.View):
         ]
     def did_mount(self):
         """Called when the view is first mounted."""
+        self.updateinfo()
+    
+    def updateinfo(self):
         if self.user_data != 0:
             self.userid = self.user_data.user_id
         self.budgetid = self.user_data.budget_id
-        self.edits_page.updateinfo(refresh=self.refresh_table)
+        self.edit_budget_page.updateinfo(refresh=self.updateinfo)
+        self.edits_page.updateinfo(refresh=self.updateinfo)
         self.refresh_table()
-
+        
     def open_edit_budget_popup(self, e):
         """Handle opening the Edit Budget popup."""
         self.edit_budget_page.open_dialog()
@@ -156,12 +160,20 @@ class Accounts(ft.View):
             allocated_balance = account['total_allocated_amount']
 
             # Retrieve transactions for the account.
+            from datetime import datetime
+
+            current_month = datetime.now().month
+            current_year = datetime.now().year
+
             self.cursor.execute("""
                 SELECT description, amount, transaction_date 
                 FROM transactions 
                 WHERE budget_accounts_id = ? AND user_id = ?
-            """, (budget_accounts_id, self.userid))
+                AND strftime('%m', transaction_date) = ? 
+                AND strftime('%Y', transaction_date) = ?
+            """, (budget_accounts_id, self.userid, f"{current_month:02d}", f"{current_year}"))
             transactions = self.cursor.fetchall()
+
 
             # Use report_creation_dt to separate completed from scheduled transactions.
             report_creation_dt = datetime.now()  # or your specific report creation timestamp

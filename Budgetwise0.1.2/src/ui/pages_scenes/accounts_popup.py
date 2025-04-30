@@ -127,6 +127,7 @@ class MakeEdits(ft.AlertDialog):
             self.userid = self.user_data.user_id
         self.refresh = refresh
         self.update_budget_info()
+        self.update_leftover()
         self.refresh_accounts_list()
 
         
