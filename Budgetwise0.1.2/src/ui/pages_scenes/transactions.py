@@ -110,19 +110,24 @@ class Transactions(ft.View):
     def prepare_transaction_details(self):
         for TID in self.returned_trans:
             details = self.trans_funcs.getTransactionDetails(TID)
+            transaction_id = TID[0]
 
             if details and len(details) == 1 and len(details[0]) == 5:
                 budget_account_id = details[0][0]
                 budget_account_name = self.trans_funcs.getBudgetAccountName(budget_account_id)
                 full_details = list(details[0])
+                full_details.insert(0, transaction_id)
                 full_details.insert(1, budget_account_name)
+                print (full_details)
                 self.transDetails.append(full_details)
+                
             else:
                 print(f"Skipping invalid details for TID: {TID}, Details: {details}")
 
     def create_transaction_rows(self):
         data_rows = []
         for row_data in self.transDetails:
+            print(row_data)
             transaction_id = row_data[0]
             display_row = [
                 row_data[0],
@@ -151,6 +156,7 @@ class Transactions(ft.View):
 
     def show_add_vendor_dialog(self, e):
         print("Opening AddVendor dialog")
+        self.add_vendor_dialog.fill_vendor_names()
         self.add_vendor_dialog.open = True
         self.page.update()
 
