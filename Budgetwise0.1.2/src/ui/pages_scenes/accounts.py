@@ -159,9 +159,6 @@ class Accounts(ft.View):
             account_name = account['account_name']
             allocated_balance = account['total_allocated_amount']
 
-            # Retrieve transactions for the account.
-            from datetime import datetime
-
             current_month = datetime.now().month
             current_year = datetime.now().year
 

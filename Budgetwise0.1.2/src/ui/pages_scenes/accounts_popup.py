@@ -130,6 +130,7 @@ class MakeEdits(ft.AlertDialog):
         self.update_leftover()
         self.refresh_accounts_list()
 
+
         
     def update_budget_info(self):
         # Retrieve the list of budgets from the database.
@@ -167,23 +168,41 @@ class MakeEdits(ft.AlertDialog):
                 for account in budgets
             ]
     def get_accounts(self):
-        # Include the notes column and filter by user_id
+        # Get account information for the logged-in user
         self.cursor.execute("""
             SELECT budget_accounts_id, account_name, total_allocated_amount, notes
             FROM budget_accounts 
             WHERE user_id = ?
-        """, (self.userid,))  # Use self.userid to fetch accounts specific to the logged-in user
-
+        """, (self.userid,))
         accounts = self.cursor.fetchall()
-        return [
-            {
+
+        current_month = dt.datetime.now().month
+        current_year = dt.datetime.now().year
+
+        results = []
+        for account in accounts:
+            budget_accounts_id = account[0]
+            # Fetch just the 'amount' for transactions for the current month and year
+            self.cursor.execute("""
+                SELECT COALESCE(SUM(amount), 0)
+                FROM transactions 
+                WHERE budget_accounts_id = ? AND user_id = ?
+                AND strftime('%m', transaction_date) = ? 
+                AND strftime('%Y', transaction_date) = ?
+            """, (budget_accounts_id, self.userid, f"{current_month:02d}", f"{current_year}"))
+            total_transaction_amount = self.cursor.fetchone()[0]
+
+            
+            results.append({
                 'budget_accounts_id': account[0],
                 'account_name': account[1],
                 'total_allocated_amount': account[2],
-                'notes': account[3]
-            }
-            for account in accounts
-        ]
+                'notes': account[3],
+                'total_transaction_amount': total_transaction_amount  # sum of these amounts
+            })
+
+        return results
+
 
 
     
@@ -262,17 +281,40 @@ class MakeEdits(ft.AlertDialog):
             self.account_allocated_field.update()
             return
 
-        # If editing an existing account, adjust the check based on the original allocated value.
+        # Check against leftover amounts.
         if hasattr(self, "current_account_id") and self.current_account_id is not None:
             # Retrieve the original allocated amount for the account being edited.
             original_allocated = next(
                 (acct["total_allocated_amount"] for acct in self.accounts 
                 if acct["budget_accounts_id"] == self.current_account_id), 0
             )
-            # Calculate the effective leftover: leftover plus the current allocation of the account.
+            # Calculate the effective leftover: leftover plus the original allocation.
             effective_leftover = self.leftover_amount + original_allocated
             if allocated > effective_leftover:
                 self.account_allocated_field.error_text = f"Amount exceeds effective leftover (${effective_leftover})"
+                self.account_allocated_field.update()
+                return
+            
+            # --- New Checker for Transactions Total ---
+            # Ensure that the new allocated amount is not lower than the sum of existing transactions.
+            current_month = dt.datetime.now().month
+            current_year = dt.datetime.now().year
+
+            self.cursor.execute(
+                """
+                SELECT COALESCE(SUM(amount), 0)
+                FROM transactions
+                WHERE budget_accounts_id = ?
+                AND strftime('%m', transaction_date) = ?
+                AND strftime('%Y', transaction_date) = ?
+                """,
+                (self.current_account_id, f"{current_month:02d}", f"{current_year}")
+            )
+            transactions_sum = self.cursor.fetchone()[0]
+            if allocated < transactions_sum:
+                self.account_allocated_field.error_text = (
+                    f"Allocated amount (${allocated}) cannot be less than the total transaction amount (${transactions_sum})."
+                )
                 self.account_allocated_field.update()
                 return
         else:
@@ -322,6 +364,7 @@ class MakeEdits(ft.AlertDialog):
         self.account_name_field.update()
         self.account_allocated_field.update()
         self.description_field.update()
+
 
 
 
