@@ -27,6 +27,11 @@ class ForgotPasswordQuestions(ft.View):
             password=True,
             can_reveal_password=True,
             width=500,
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Answer your security question here",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
             on_change=lambda e: (self.clear_error(), self.toggle_continue_button(e))
         )
 

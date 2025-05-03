@@ -9,7 +9,15 @@ class UsernameVerification(ft.View):
         self.colors = colors
 
         # UI Components
-        self.username_field = ft.TextField(label="Enter your username", width=400)
+        self.username_field = ft.TextField(
+            label="Enter your username",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Enter your Username",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            width=400
+            )
         self.error_text = ft.Text("", color=self.colors.ERROR_RED, size=14)
 
         # Continue button

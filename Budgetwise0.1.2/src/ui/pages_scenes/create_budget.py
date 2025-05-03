@@ -10,8 +10,23 @@ class CreateBudget(ft.View):
         self.colors = colors
 
         # UI Components
-        self.budget_name = ft.TextField(label="Budget Name")
-        self.budget_amount = ft.TextField(label="Budget Amount", keyboard_type=ft.KeyboardType.NUMBER)
+        self.budget_name = ft.TextField(
+            label="Budget Name",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Give your budget a name",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            )
+        self.budget_amount = ft.TextField(
+            label="Budget Amount", 
+            keyboard_type=ft.KeyboardType.NUMBER,
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="How much do you make in a month (0-9)",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            )
 
         # Button handler: Save budget info and navigate to the next page
         self.save_button = ft.ElevatedButton(

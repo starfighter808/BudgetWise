@@ -59,7 +59,15 @@ class SecurityQuestions(ft.View):
             width=500,
             expand=True,
         )
-        self.answer1 = ft.TextField(width=500,label="Answer 1", color= colors.TEXT_COLOR)
+        self.answer1 = ft.TextField(
+            width=500,
+            label="Answer 1", 
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Answer your first security question",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR 
+            )
 
         self.dd2 = ft.Dropdown(
             label="Select Security Question 2",
@@ -70,7 +78,15 @@ class SecurityQuestions(ft.View):
             width=500,
             expand=True,
         )
-        self.answer2 = ft.TextField(width=500, label="Answer 2", color= colors.TEXT_COLOR)
+        self.answer2 = ft.TextField(
+            width=500, 
+            label="Answer 2", 
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Answer your second security question",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            )
 
         self.dd3 = ft.Dropdown(
             label="Select Security Question 3",
@@ -81,7 +97,15 @@ class SecurityQuestions(ft.View):
             width=500,
             expand=True,
         )
-        self.answer3 = ft.TextField(width= 500, label="Answer 3", color= colors.TEXT_COLOR)
+        self.answer3 = ft.TextField(
+            width= 500, 
+            label="Answer 3", 
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Answer your third security question",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            )
 
         def validate_and_continue(e):
             """Validates security questions, updates temp_sign_in_data with the questions and answers, and initiates user creation."""

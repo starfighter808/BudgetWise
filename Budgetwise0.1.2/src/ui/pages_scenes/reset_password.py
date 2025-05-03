@@ -11,6 +11,11 @@ class ResetPassword(ft.View):
         # Input fields
         self.password = ft.TextField(
             label="New Password",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Enter your Password",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
             password=True,
             can_reveal_password=True,
             width=400,
@@ -19,6 +24,11 @@ class ResetPassword(ft.View):
 
         self.confirm_password = ft.TextField(
             label="Confirm Password",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Confirm your Password",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
             password=True,
             can_reveal_password=True,
             width=400,

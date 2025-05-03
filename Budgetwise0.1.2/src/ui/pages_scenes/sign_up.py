@@ -10,9 +10,34 @@ class SignUp(ft.View):
         self.colors = colors
 
         # Input fields
-        self.username = ft.TextField(label="Username", on_change=self.clear_error)
-        self.password = ft.TextField(label="Password", password=True, can_reveal_password=True, on_change=self.clear_error)
-        self.confirm_password = ft.TextField(label="Confirm Password", password=True, can_reveal_password=True, on_change=self.clear_error)
+        self.username = ft.TextField(
+            label="Username",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Enter your Username",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            on_change=self.clear_error)
+        self.password = ft.TextField(
+            label="Password",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Enter your Password",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            password=True, 
+            can_reveal_password=True, 
+            on_change=self.clear_error)
+        self.confirm_password = ft.TextField(
+            label="Confirm Password",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Confirm your Password",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            password=True, 
+            can_reveal_password=True, 
+            on_change=self.clear_error)
 
         # Error message text
         self.error_text = ft.Text("", color=self.colors.ERROR_RED)
