@@ -416,7 +416,7 @@ class UserData:
             for account_data in accounts:
                 cursor.execute(
                     """INSERT INTO budget_accounts (user_id, budget_id, account_name, total_allocated_amount, current_amount, savings_goal, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                     (
                         self.user_id,
                         budget_id,
@@ -523,8 +523,3 @@ class UserData:
 
 
         
-
-
-
-
-
