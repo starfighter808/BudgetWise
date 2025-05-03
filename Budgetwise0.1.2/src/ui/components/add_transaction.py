@@ -16,10 +16,25 @@ class AddTransaction(ft.AlertDialog):
         self.selected_account = None
 
         # Amount input
-        self.amount_field = ft.TextField(label="Amount", width=400, keyboard_type=ft.KeyboardType.NUMBER)
+        self.amount_field = ft.TextField(
+            label="Amount",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="How much did you spend",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            width=400, 
+            keyboard_type=ft.KeyboardType.NUMBER)
 
         # Description input
-        self.description_field = ft.TextField(label="Description", width=400)
+        self.description_field = ft.TextField(
+            label="Description",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Enter your Username",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR, 
+            width=400)
 
         # Recurring checkbox
         self.recurring_checkbox = ft.Checkbox(label="Recurring")
@@ -149,7 +164,8 @@ class AddTransaction(ft.AlertDialog):
         self.page.update()
 
     def populate_vendor_dropdown(self):
-        vendors = self.vend_funcs.get_all_vendors()
+        self.user_id = self.user_data.user_id
+        vendors = self.vend_funcs.get_all_vendors(self.user_id)
         self.vendor_dropdown.options = [
             ft.dropdown.Option(key=vendor[0], text=vendor[1]) for vendor in vendors
         ]
@@ -188,8 +204,9 @@ class AddTransaction(ft.AlertDialog):
         transaction_date = self.selected_date
 
         # Determine status based on the transaction date
-        status = 1 if transaction_date <= date.today() else 2  # 1: Processed, 2: Scheduled
+        status = 2 if transaction_date <= date.today() else 1  # 2: Processed, 1: Pending
 
+        print(f"Inserting into transactions: user_id: {self.selected_account} vendor_ID: {self.selected_vendor} transaction amount: {amount} description (optional): {description} recurring: {recurring} date: {transaction_date} status: {status}")
         # Perform transaction insert
         success = self.trans_funcs.create_transaction(
             account_id=self.selected_account,

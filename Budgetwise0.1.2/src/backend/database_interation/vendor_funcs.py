@@ -114,20 +114,20 @@ class Vendor:
             print(f"[get_vendor_details] SQLCipher Error: {e}")
             return None
 
-    def get_all_vendors(self):
+    def get_all_vendors(self, user_id):
             try:
                 # Debugging: Ensure the connection is valid
                 if self.db is None:
                     return []
-                
-                query = "SELECT vendor_id, vendor_name FROM vendors"
+
+                query = "SELECT vendor_id, vendor_name FROM vendors where user_id = ?"
                 cursor = self.db.cursor()
                 
                 # Debugging: Check if cursor is created successfully
                 if cursor is None:
                     return []
 
-                vendors = cursor.execute(query).fetchall()
+                vendors = cursor.execute(query, (user_id,)).fetchall()
 
                 # Debugging: Output the fetched vendors
                 return vendors

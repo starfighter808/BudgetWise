@@ -33,28 +33,36 @@ class MakeEdits(ft.AlertDialog):
         # Create fields for account creation
         self.account_name_field = ft.TextField(
             label="Account Name",
-            text_style=ft.TextStyle(color=colors.TEXT_COLOR),
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
             hint_text="Enter your account name",
-            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND)
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR
         )
 
         self.account_allocated_field = ft.TextField(
-            label="Account Allocated", 
+            label="Account Allocated",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
             keyboard_type=ft.KeyboardType.NUMBER,
             text_style=ft.TextStyle(color=colors.TEXT_COLOR),
             hint_text="Enter your allocated amount",
-            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND)
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND),
+            focused_border_color= self.colors.BORDERBOX_COLOR
         )
 
         self.description_field = ft.TextField(
-            label="Description", 
-            multiline=True, 
-            min_lines=1, 
+            label="Description",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR),  # sets the label color
+            multiline=True,
+            min_lines=1,
             max_lines=4,
             text_style=ft.TextStyle(color=colors.TEXT_COLOR),
             hint_text="What is this account for?",
-            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND)
-            )
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND),
+            focused_border_color= self.colors.BORDERBOX_COLOR  # sets the outline color when focused
+            # You can also try adding border_color="#93B8C8" if you want to change its default border color
+        )
+
 
         # ListView to display added accounts
         self.accounts_list_view = ft.ListView(

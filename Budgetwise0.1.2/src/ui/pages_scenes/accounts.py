@@ -145,10 +145,10 @@ class Accounts(ft.View):
 
         # Table Header
         self.table.controls.append(ft.Row([
-            ft.Text("Account", weight="bold", width=200, color=self.colors.TEXT_COLOR, text_align="center", size=24),
-            ft.Text("Balance", weight="bold", width=150, color=self.colors.TEXT_COLOR, text_align="center", size=24),
-            ft.Text("Allocation", weight="bold", width=300, color=self.colors.TEXT_COLOR, text_align="center", size=24),
-            ft.Text("Transactions", weight="bold", width=300, color=self.colors.TEXT_COLOR, text_align="center", size=24),
+            ft.Text("Account", weight="bold", width=200, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
+            ft.Text("Balance", weight="bold", width=150, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
+            ft.Text("Allocation", weight="bold", width=300, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
+            ft.Text("Transactions", weight="bold", width=300, color=self.colors.BLUE_BACKGROUND, text_align="center", size=24),
             ft.Text("", width=50)  # Placeholder for delete button column
         ], alignment=ft.MainAxisAlignment.CENTER, spacing=10))
 
@@ -196,10 +196,10 @@ class Accounts(ft.View):
             # Build the Sub-Table Header (adding a "Status" column if needed).
             sub_table_header = ft.Row(
                 controls=[
-                    ft.Text("Description", weight="bold", width=200, text_align="center", size=18),
-                    ft.Text("Amount", weight="bold", width=150, text_align="center", size=18),
-                    ft.Text("Transaction Date", weight="bold", width=200, text_align="center", size=18),
-                    ft.Text("Status", weight="bold", width=100, text_align="center", size=18),
+                    ft.Text("Description", weight="bold", width=200, text_align="center",color=self.colors.GREEN_BUTTON, size=18),
+                    ft.Text("Amount", weight="bold", width=150, text_align="center",color=self.colors.GREEN_BUTTON, size=18),
+                    ft.Text("Transaction Date", weight="bold", width=200, text_align="center",color=self.colors.GREEN_BUTTON, size=18),
+                    ft.Text("Status", weight="bold", width=100, text_align="center",color=self.colors.GREEN_BUTTON, size=18),
                 ],
                 spacing=0,
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -211,9 +211,9 @@ class Accounts(ft.View):
                 controls=[
                     ft.Row(
                         controls=[
-                            ft.Text(description, width=200, text_align="center", size=16),
-                            ft.Text(f"${amount:.2f}", width=150, text_align="center", size=16),
-                            ft.Text(transaction_date, width=200, text_align="center", size=16),
+                            ft.Text(description, width=200, text_align="center",color=self.colors.TEXT_COLOR, size=16),
+                            ft.Text(f"${amount:.2f}", width=150, text_align="center",color=self.colors.TEXT_COLOR, size=16),
+                            ft.Text(transaction_date, width=200, text_align="center",color=self.colors.TEXT_COLOR, size=16),
                             ft.Text(
                                 status,
                                 width=100,

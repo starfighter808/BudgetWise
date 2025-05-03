@@ -23,6 +23,7 @@ class Colors:
     # Black
     BLACK = ft.Colors.BLACK
 
+    BORDERBOX_COLOR = "#93B8C8"
     ### Pie Chart Colors ###
     PIE_CHART_YELLOW = ft.Colors.YELLOW
     PIE_CHART_YELLOW = ft.Colors.PURPLE

@@ -9,17 +9,30 @@ class AddVendor(ft.AlertDialog):
         self.colors = colors
         self.vend_funcs = vend_funcs
         self.refresh = None
-        self.user_id = self.user_data.user_id
         self.db = self.user_data.db
         self.cursor = self.db.cursor()
-
+        self.vendor_name_list = []
         # Vendor input fields
         self.vendor_name_field = ft.TextField(
             label="Vendor Name",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
             text_style=ft.TextStyle(color=colors.TEXT_COLOR),
             hint_text="Enter Vendor Name",
-            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND)
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND),
+            focused_border_color= self.colors.BORDERBOX_COLOR
         )
+
+        # added code here ----------------
+        # Container to hold the list of added vendors
+        self.vendors_column = ft.Column(spacing=5)
+        self.vendors_container = ft.Container(
+            content=self.vendors_column,
+            height=200,
+            border=ft.border.all(1, self.colors.TEXT_COLOR),
+            padding=10,
+            expand=True, # Added expand for better layout
+        )
+
 
         # Dialog content
         self.content = ft.Container(
@@ -43,13 +56,7 @@ class AddVendor(ft.AlertDialog):
                     ),
                     ft.Divider(),
                     ft.Text("Added vendors:", weight=ft.FontWeight.BOLD, color=self.colors.TEXT_COLOR),
-                    # Placeholder for future vendor list view
-                    ft.Container(
-                        content=ft.Text("No vendors yet."),  # Or self.vendors_list_view when implemented
-                        height=200,
-                        border=ft.border.all(1, self.colors.TEXT_COLOR),
-                        padding=10,
-                    ),
+                    self.vendors_container, #new code
                 ],
             ),
         )
@@ -62,8 +69,15 @@ class AddVendor(ft.AlertDialog):
 
         if name:
             try:
+                self.user_id = self.user_data.user_id #get user-ID at vendor creation time
+                #debug print
+                #print(f"adding to DB userID: {self.user_id}  vendor name: {name}" )
+                
                 # Create vendor in the database using vend_funcs
                 self.vend_funcs.create_vendor(self.user_id, name)
+
+                # update displayed vendor list (new code)
+                self.fill_vendor_names()
                 
                 # Optionally update the vendor list view (refresh if needed)
                 if self.refresh:
@@ -78,7 +92,19 @@ class AddVendor(ft.AlertDialog):
         else:
             print("Please enter a name.")  # Replace with Snackbar for UI feedback
 
+
     def close_dialog(self, e):
         print("AddVendorDialog.close_dialog called")
         self.open = False
         self.update()
+
+    def fill_vendor_names(self):
+        self.user_id = self.user_data.user_id #get user-ID at vendor filling time
+        self.vendor_name_list = self.vend_funcs.get_all_vendors(self.user_data.user_id)
+        self.vendors_column.controls = [
+            ft.Text(
+                vendor, 
+                color=self.colors.TEXT_COLOR
+                ) for vendor in self.vendor_name_list
+                ]
+        self.vendors_column.update()

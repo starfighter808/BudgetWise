@@ -26,18 +26,24 @@ class EditBudget(ft.AlertDialog):
         self.cursor = self.db.cursor()
 
         self.budget_name = ft.TextField(
-            label="Budget Name", 
+            label="Budget Name",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
             value=self.current_name, 
             text_style=ft.TextStyle(color=colors.TEXT_COLOR),
             hint_text="What you want your Budget to be called",
-            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND))
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND),
+            focused_border_color = self.colors.BORDERBOX_COLOR
+        ) 
+        
         self.budget_amount = ft.TextField(
-            label="Budget Amount", 
+            label="Budget Amount",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
             value=str(self.current_amount),
               keyboard_type=ft.KeyboardType.NUMBER,
               text_style=ft.TextStyle(color=colors.TEXT_COLOR),
             hint_text="How much you make",
-            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND)
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND),
+            focused_border_color = self.colors.BORDERBOX_COLOR
             )
 
         self.save_button = ft.TextButton(
