@@ -186,7 +186,7 @@ class AddBudgetAccounts(ft.View):
 
             account_row = ft.Row(
                 controls=[
-                    ft.Text(f"{account['name']} ({account['type']}) - Allocated: ${account['total_allocated']}", expand=True),
+                    ft.Text(f"{account['name']} {account['total_allocated']}", expand=True),
                     ft.IconButton(ft.Icons.DELETE, on_click=remove_account)
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
