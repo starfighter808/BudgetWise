@@ -46,8 +46,21 @@ class Dashboard(ft.View):
             dashboard=self,
             total_budget=self.total_budget,
             accounts=input_accounts,
-            colors=colors
+            colors=self.colors
         )
+
+        self.input_panel_container = ft.Container(
+            content=self.input_panel.build(),
+            margin=10,
+            padding=10,
+            alignment=ft.alignment.top_center,
+            bgcolor=self.colors.BLACK,
+            width=None,
+            height=None,
+            border_radius=10,
+            expand=True
+        )
+
 
         title_row = ft.Row(
             [ft.Text("Dashboard", size=30, weight="bold")],
@@ -92,17 +105,7 @@ class Dashboard(ft.View):
                 expand=True
                 ),
                 ft.Column(col=5, controls=[
-                    ft.Container(
-                        content=self.input_panel.build(),
-                        margin=10,
-                        padding=10,
-                        alignment=ft.alignment.top_center,
-                        bgcolor=self.colors.BLACK,
-                        width=None,
-                        height=None,
-                        border_radius=10,
-                        expand=True
-                    ),
+                    self.input_panel_container,
                     ft.ElevatedButton(
                         "Save",
                         on_click=self.save_budget,
@@ -145,8 +148,19 @@ class Dashboard(ft.View):
         ]
 
     def did_mount(self):
+        # if self.page.session.get("userID") != None:
+        #     print("Dashboard successfully retrieved userID")
+        #     self.userID = self.page.session.get("userID")
+        # else:
+        #     self.userID = 1
+        if self.user_data.user_id != 0:
+            self.userID = self.user_data.user_id
+        self.total_budget = self.get_total_budget()
+        self.budget_accounts = self.get_accounts()
         self.budget_name_label.controls[1].value = self.user_data.budget_name
         self.draw_transaction_table()
+        self.update_pie_chart()
+        self.input_panel.update_view(self.total_budget, self.budget_accounts)
         self.page.update()
 
     def get_accounts(self):
@@ -468,3 +482,42 @@ class BudgetInputPanel:
             header,
             scrollable_container
         ], expand=True)
+    
+    def update_view(self, total_budget, raw_budget_accounts):
+        """
+        Update the BudgetInputPanel view using the latest budget data.
+
+        Parameters:
+            total_budget (float): The new total budget.
+            raw_budget_accounts (list): A list of dictionaries containing the budget accounts data
+                                        as retrieved from the database.
+        """
+        # Update the total budget.
+        self.total_budget = total_budget
+
+        # Convert raw accounts into the expected input format.
+        self.accounts = [{
+            'name': account['account_name'],
+            'allocated': account['total_allocated_amount'],
+            'current_amount': account['current_amount'],
+            'original_data': account
+        } for account in raw_budget_accounts]
+
+        # Recalculate and update the remaining budget label.
+        self.remaining_label.value = f"Remaining Budget: ${self.calculate_remaining():,.2f}"
+
+        # Update each input field with the latest allocated value.
+        for account in self.accounts:
+            if account['name'] in self.input_fields:
+                self.input_fields[account['name']].value = str(account['allocated'])
+
+        # Rebuild the panel layout.
+        new_layout = self.build()
+        
+        # Update only the container that is holding the input panel.
+        self.dashboard.input_panel_container.content = new_layout
+
+        # Refresh the UI.
+        self.dashboard.page.update()
+
+
