@@ -25,9 +25,32 @@ class AddBudgetAccounts(ft.View):
 
         # Create Account Section
         self.create_account_text = ft.Text("Create account:", weight=ft.FontWeight.BOLD, color=colors.TEXT_COLOR)
-        self.account_name_field = ft.TextField(label="Account Name")
-        self.account_allocated_field = ft.TextField(label="Account Allocated", keyboard_type=ft.KeyboardType.NUMBER)
-        self.description_field = ft.TextField(label="Description", multiline=True, min_lines=1, max_lines=4)
+        self.account_name_field = ft.TextField(
+            label="Account Name",
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
+            hint_text="Enter your account name",
+            hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
+            focused_border_color=self.colors.BORDERBOX_COLOR
+            )
+        self.account_allocated_field = ft.TextField(
+            label="Account Allocated", 
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
+            keyboard_type=ft.KeyboardType.NUMBER,
+            text_style=ft.TextStyle(color=colors.TEXT_COLOR),
+            hint_text="Enter your allocated amount",
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND),
+            focused_border_color= self.colors.BORDERBOX_COLOR)
+        self.description_field = ft.TextField(
+            label="Description", 
+            label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR),  # sets the label color
+            multiline=True,
+            min_lines=1,
+            max_lines=4,
+            text_style=ft.TextStyle(color=colors.TEXT_COLOR),
+            hint_text="What is this account for?",
+            hint_style=ft.TextStyle(color=colors.BLUE_BACKGROUND),
+            focused_border_color= self.colors.BORDERBOX_COLOR )
         self.add_account_button = ft.ElevatedButton("Add Account", on_click=self.add_account)
 
         # Added Accounts Section

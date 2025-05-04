@@ -31,7 +31,7 @@ class AddTransaction(ft.AlertDialog):
             label="Description",
             label_style=ft.TextStyle(color=self.colors.BORDERBOX_COLOR), 
             text_style=ft.TextStyle(color=self.colors.TEXT_COLOR),
-            hint_text="Enter your Username",
+            hint_text="A short description",
             hint_style=ft.TextStyle(color=self.colors.BLUE_BACKGROUND),
             focused_border_color=self.colors.BORDERBOX_COLOR, 
             width=400)
