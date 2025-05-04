@@ -47,7 +47,7 @@ class TransClass:
     def getTransactionDetails(self, transactionID):
         try:
             # this query should return all of the details related to a single specific transaction_id
-            query = """SELECT budget_accounts_id, vendor_id, amount, description, recurring FROM transactions WHERE transaction_id = ?"""
+            query = """SELECT budget_accounts_id, vendor_id, amount, description, recurring, transaction_date  FROM transactions WHERE transaction_id = ?"""
             self.conn.execute(query, (transactionID))
             return self.conn.fetchall()
         # if sqlite3 throws, print error to screen.
@@ -213,6 +213,49 @@ class TransClass:
         except Exception as e:
             print(f"An error occurred in create_transaction: {e}")
             return False
+
+    def update_transaction(self, transaction_id, account_id, vendor_id, transAmount, description, recurring, transaction_date=None, status=2):
+        """
+        Update an existing transaction in the database.
+        """
+        if transaction_date is None:
+            transaction_date = date.today().strftime("%Y-%m-%d")
+
+        try:
+            cursor = self.db.cursor()
+            # UPDATE statement instead of INSERT
+            cursor.execute(
+                """UPDATE transactions
+                SET user_id = ?,
+                    budget_accounts_id = ?,
+                    vendor_id = ?,
+                    amount = ?,
+                    description = ?,
+                    recurring = ?,
+                    transaction_date = ?,
+                    status = ?
+                WHERE transaction_id = ?""",
+                (
+                    self.user_data.user_id,  # Update the user_id if needed
+                    account_id,
+                    vendor_id,
+                    transAmount,
+                    description,
+                    int(recurring),
+                    transaction_date,
+                    int(status),
+                    transaction_id           # Identify which record to update
+                )
+            )
+
+            self.db.commit_db()  # Commit the changes to the database
+            print(f"Transaction updated for transaction_id {transaction_id} with new amount {transAmount}")
+            return True
+
+        except Exception as e:
+            print(f"An error occurred in update_transaction: {e}")
+            return False
+
 
 
 

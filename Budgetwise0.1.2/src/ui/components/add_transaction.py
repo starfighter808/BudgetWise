@@ -157,6 +157,47 @@ class AddTransaction(ft.AlertDialog):
         self.populate_account_dropdown()
         self.open = True
         self.page.update()
+    
+    def load_transaction_info(self, transaction):
+        """
+        Populate the dialog fields with an existing transaction's data.
+        
+        Expected keys in transaction:
+            - transaction_id
+            - vendor_id
+            - account_id
+            - amount
+            - description
+            - transaction_date (formatted as "YYYY-MM-DD")
+            - recurring (0 or 1)
+        """
+        # Save the transaction ID for later update operations.
+        self.transaction_id = transaction["transaction_id"]
+
+        # Fill in the amount and description.
+        self.amount_field.value = str(transaction["amount"])
+        self.description_field.value = transaction["description"]
+        
+        # Set the recurring checkbox (ensure it's interpreted as a boolean)
+        self.recurring_checkbox.value = bool(transaction["recurring"])
+
+        # Convert the transaction date string to a date object.
+        try:
+            from datetime import datetime
+            trans_date = datetime.strptime(transaction["transaction_date"], "%Y-%m-%d").date()
+        except Exception as e:
+            trans_date = date.today()
+        self.selected_date = trans_date
+        self.date_button.text = f"Select Transaction Date: {self.selected_date.strftime('%m/%d/%Y')}"
+        
+        # Set the vendor and account dropdowns.
+        # Note: if your dropdown values are strings, convert the IDs to strings.
+        self.vendor_dropdown.value = str(transaction["vendor_id"])
+        self.account_dropdown.value = str(transaction["account_id"])
+        
+        # Ensure the dialog reflects the updated information.
+        self.page.update()
+
 
     def did_mount(self):
         self.populate_vendor_dropdown()
@@ -204,7 +245,8 @@ class AddTransaction(ft.AlertDialog):
         transaction_date = self.selected_date
 
         # Determine status based on the transaction date
-        status = 2 if transaction_date <= date.today() else 1  # 2: Processed, 1: Pending
+        status = 2 if transaction_date.date() <= date.today() else 1  # 2: Processed, 1: Pending
+
 
         print(f"Inserting into transactions: user_id: {self.selected_account} vendor_ID: {self.selected_vendor} transaction amount: {amount} description (optional): {description} recurring: {recurring} date: {transaction_date} status: {status}")
         # Perform transaction insert
@@ -235,3 +277,52 @@ class AddTransaction(ft.AlertDialog):
     def close_dialog(self, e=None):
         self.open = False
         self.page.update()
+    
+    def update_transaction(self, e):
+        # Validate input fields.
+        if not all([self.selected_vendor, self.selected_account, self.amount_field.value]):
+            self.show_snackbar("Please fill all required fields.", self.colors.ERROR_RED)
+            return
+
+        try:
+            amount = float(self.amount_field.value)
+        except ValueError:
+            self.show_snackbar("Amount must be a number.", self.colors.ERROR_RED)
+            return
+
+        description = self.description_field.value or ""
+        recurring = self.recurring_checkbox.value
+        transaction_date = self.selected_date
+        # Determine a status value (this logic is carried over from confirm_transaction)
+        status = 2 if transaction_date <= date.today() else 1
+
+        # Ensure the transaction_id is set (this should have been set when opening the dialog in edit mode)
+        if not hasattr(self, "transaction_id") or self.transaction_id is None:
+            self.show_snackbar("No transaction selected for update.", self.colors.ERROR_RED)
+            return
+
+        print(f"Updating transaction: {self.transaction_id}, "
+            f"Account: {self.selected_account}, Vendor: {self.selected_vendor}, "
+            f"Amount: {amount}, Description: {description}, Recurring: {recurring}, "
+            f"Date: {transaction_date}, Status: {status}")
+
+        # Call the update_transaction method in trans_funcs
+        success = self.trans_funcs.update_transaction(
+            transaction_id=self.transaction_id,
+            account_id=self.selected_account,
+            vendor_id=self.selected_vendor,
+            transAmount=amount,
+            description=description,
+            recurring=recurring,
+            transaction_date=transaction_date.strftime("%Y-%m-%d"),
+            status=status,
+        )
+
+        if success:
+            self.show_snackbar("Transaction updated successfully.", self.colors.GREEN_BUTTON)
+            self.close_dialog()
+            if self.refresh:
+                self.refresh()  # Refresh the list of transactions or other related data.
+        else:
+            self.show_snackbar("Failed to update transaction.", self.colors.ERROR_RED)
+
