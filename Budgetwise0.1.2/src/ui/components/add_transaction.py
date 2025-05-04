@@ -15,6 +15,9 @@ class AddTransaction(ft.AlertDialog):
         self.selected_vendor = None
         self.selected_account = None
 
+        self.update_trans = False
+        self.transaction_id = None
+
         # Amount input
         self.amount_field = ft.TextField(
             label="Amount",
@@ -68,7 +71,7 @@ class AddTransaction(ft.AlertDialog):
         # Buttons
         self.confirm_button = ft.TextButton(
             "Add Transaction",
-            on_click=self.confirm_transaction,
+            on_click=self.save_transaction,
             style=ft.ButtonStyle(
                 color={ft.ControlState.DEFAULT: self.colors.TEXT_COLOR},
                 bgcolor={ft.ControlState.DEFAULT: self.colors.GREEN_BUTTON},
@@ -156,6 +159,7 @@ class AddTransaction(ft.AlertDialog):
         self.populate_vendor_dropdown()
         self.populate_account_dropdown()
         self.open = True
+        self.update_trans = False
         self.page.update()
     
     def load_transaction_info(self, transaction):
@@ -213,6 +217,15 @@ class AddTransaction(ft.AlertDialog):
 
         self.page.update()
 
+    def save_transaction(self, e = None):
+        if self.update_trans:
+            # Call the update method if in update mode
+            self.update_transaction(e)
+        else:
+            # Otherwise, create a new transaction
+            self.confirm_transaction(e)
+
+
     def populate_account_dropdown(self):
         accounts = self.user_data.get_all_budget_accounts()
         self.account_dropdown.options = [
@@ -245,7 +258,7 @@ class AddTransaction(ft.AlertDialog):
         transaction_date = self.selected_date
 
         # Determine status based on the transaction date
-        status = 2 if transaction_date.date() <= date.today() else 1  # 2: Processed, 1: Pending
+        status = 2 if transaction_date <= date.today() else 1# 2: Processed, 1: Pending
 
 
         print(f"Inserting into transactions: user_id: {self.selected_account} vendor_ID: {self.selected_vendor} transaction amount: {amount} description (optional): {description} recurring: {recurring} date: {transaction_date} status: {status}")
@@ -276,11 +289,14 @@ class AddTransaction(ft.AlertDialog):
 
     def close_dialog(self, e=None):
         self.open = False
+        self.update_trans = False
         self.page.update()
     
     def update_transaction(self, e):
         # Validate input fields.
+        print("update_transaction called")
         if not all([self.selected_vendor, self.selected_account, self.amount_field.value]):
+            print(self.selected_vendor," ",self.selected_account," ", self.amount_field.value)
             self.show_snackbar("Please fill all required fields.", self.colors.ERROR_RED)
             return
 
@@ -295,7 +311,7 @@ class AddTransaction(ft.AlertDialog):
         transaction_date = self.selected_date
         # Determine a status value (this logic is carried over from confirm_transaction)
         status = 2 if transaction_date <= date.today() else 1
-
+        print(self.transaction_id)
         # Ensure the transaction_id is set (this should have been set when opening the dialog in edit mode)
         if not hasattr(self, "transaction_id") or self.transaction_id is None:
             self.show_snackbar("No transaction selected for update.", self.colors.ERROR_RED)
@@ -325,4 +341,50 @@ class AddTransaction(ft.AlertDialog):
                 self.refresh()  # Refresh the list of transactions or other related data.
         else:
             self.show_snackbar("Failed to update transaction.", self.colors.ERROR_RED)
+
+    def load_transaction_info(self, transaction_row):
+        """
+        Populate the dialog fields with an existing transaction's data,
+        expecting transaction_row to be in the format:
+        [transaction_id, budget_account_name, budget_account_id, amount, description, transaction_date, recurring, vendor_id]
+        """
+        self.populate_vendor_dropdown()
+        self.populate_account_dropdown()
+
+        transaction_dict = {
+            "transaction_id": transaction_row[0],
+            "account_id": transaction_row[2],
+            "vendor_id": transaction_row[7],  # Using index 7 for vendor_id as appended
+            "amount": transaction_row[3],
+            "description": transaction_row[4],
+            "transaction_date": transaction_row[5],
+            "recurring": transaction_row[6],
+            "budget_account_name": transaction_row[1],
+        }
+        
+        # Now pre-populate your fields using transaction_dict
+        self.transaction_id = transaction_dict["transaction_id"]  # Save for updates.
+        self.amount_field.value = str(transaction_dict["amount"])
+        self.description_field.value = transaction_dict["description"]
+        self.recurring_checkbox.value = bool(transaction_dict["recurring"])
+
+        # Convert transaction date from string to date object
+        try:
+            from datetime import datetime
+            trans_date = datetime.strptime(transaction_dict["transaction_date"], "%Y-%m-%d").date()
+        except Exception:
+            trans_date = date.today()
+        self.selected_date = trans_date
+        self.date_button.text = f"Select Transaction Date: {self.selected_date.strftime('%m/%d/%Y')}"
+        
+        # Set the dropdown values.
+        # Also update the instance variables that store the currently selected IDs.
+        self.vendor_dropdown.value = str(transaction_dict["vendor_id"])
+        self.account_dropdown.value = str(transaction_dict["account_id"])
+        self.selected_vendor = transaction_dict["vendor_id"]
+        self.selected_account = transaction_dict["account_id"]
+        
+        self.update_trans = True
+        self.page.update()
+
 

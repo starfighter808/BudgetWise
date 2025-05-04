@@ -116,14 +116,6 @@ class Transactions(ft.View):
 
         data_rows = self.create_transaction_rows()
 
-        if not data_rows:
-            data_rows = [
-                ft.DataRow(
-                    cells=[ft.DataCell(ft.Text("No transactions found", color="red"))] +
-                        [ft.DataCell(ft.Text("")) for _ in range(6)]
-                )
-            ]
-
 
 
 
@@ -189,7 +181,7 @@ class Transactions(ft.View):
             if details and len(details) == 1 and len(details[0]) == 6:
                 tuple_data = details[0]
                 budget_account_id = tuple_data[0]
-                # We ignore tuple_data[1] (vendor_id) since it's not required.
+                vendor_id = tuple_data[1]  # Now we capture the vendor_id
                 amount = tuple_data[2]
                 description = tuple_data[3]
                 recurring = tuple_data[4]
@@ -197,7 +189,7 @@ class Transactions(ft.View):
                 budget_account_name = self.trans_funcs.getBudgetAccountName(budget_account_id)
                 
                 # Build final list with the desired order:
-                # [ transaction_id, budget_account_name, budget_account_id, amount, description, transaction_date, recurring ]
+                # [ transaction_id, budget_account_name, budget_account_id, amount, description, transaction_date, recurring, vendor_id ]
                 final_details = [
                     transaction_id,
                     budget_account_name,
@@ -205,7 +197,8 @@ class Transactions(ft.View):
                     amount,
                     description,
                     transaction_date,
-                    recurring
+                    recurring,
+                    vendor_id
                 ]
                 
                 print(final_details)
@@ -214,8 +207,24 @@ class Transactions(ft.View):
                 print(f"Skipping invalid details for TID: {TID}, Details: {details}")
 
 
+
     def create_transaction_rows(self):
         data_rows = []
+        # Check if transDetails is empty
+        if not self.transDetails:
+            # Option 1: Return an empty list, so nothing gets rendered.
+            # return data_rows
+            
+            # Option 2: Return a fallback row
+            data_rows.append(
+                ft.DataRow(
+                    cells=(
+                        [ft.DataCell(ft.Text("No transactions found", color="red"))] +
+                        [ft.DataCell(ft.Text("")) for _ in range(6)]
+                    )
+                )
+            )
+            return data_rows
         for row_data in self.transDetails:
             # Assuming row_data is structured as:
             # [transaction_id, budget_account_name, budget_account_id, amount, description, transaction_date, recurring]
@@ -229,22 +238,25 @@ class Transactions(ft.View):
             ]
 
 
+
             def delete_row(e, tid=transaction_id):
                 print(f"Deleting transaction with ID: {tid}")
                 self.trans_funcs.delete_transaction(tid)
                 self.refresh_data()
                 self.page.update()
 
-            def edit_transaction(e, tid=transaction_id):
-                print(f"Editing transaction with ID: {tid}")
-                self.edit_transaction(tid)
+            def edit_transaction(e, tid, transaction_row):
+                # Instead of re-querying, use the provided transaction_row.
+                self.add_transaction_dialog.load_transaction_info(transaction_row)
+                self.add_transaction_dialog.open = True
                 self.page.update()
+
 
             edit_button = ft.IconButton(
                 icon=ft.Icons.EDIT,
                 tooltip="Edit",
                 icon_color=self.colors.GREEN_BUTTON,
-                # on_click=self.show_edit_transaction_dialog
+                on_click=lambda e, row= row_data: edit_transaction(e, row[0], row)
             )
 
             delete_button = ft.IconButton(

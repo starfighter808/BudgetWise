@@ -256,13 +256,6 @@ class Installation:
             UPDATE reports SET updated_at = CURRENT_TIMESTAMP WHERE report_id = OLD.report_id;
         END;
 
-        CREATE TRIGGER update_transactions_timestamp
-        AFTER UPDATE ON transactions
-        FOR EACH ROW
-        BEGIN
-            UPDATE transactions SET updated_at = CURRENT_TIMESTAMP WHERE transaction_id = OLD.transaction_id;
-        END;
-
         CREATE TRIGGER update_vendors_timestamp
         AFTER UPDATE ON vendors
         FOR EACH ROW

@@ -351,7 +351,12 @@ class Dashboard(ft.View):
         self.pie_chart.update()
 
     def build_pie_chart(self):
-        return self.create_pie_chart()
+        # Create a PieChart with no sections initially.
+        self.pie_chart = ft.PieChart(
+            sections=[],
+            # You can include additional parameters if necessary.
+        )
+        return self.pie_chart
     
 class BudgetInputPanel:
     def __init__(self, dashboard, total_budget, accounts, colors):
