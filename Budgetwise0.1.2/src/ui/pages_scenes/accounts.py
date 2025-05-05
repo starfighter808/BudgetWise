@@ -395,11 +395,16 @@ class Accounts(ft.View):
                 budget_accounts_id, account_name, balance = account['budget_accounts_id'], account['account_name'], account['total_allocated_amount']
 
                 # Calculate updated balance and transactions
+                current_month = datetime.now().month
+                current_year = datetime.now().year
+
                 self.cursor.execute("""
                     SELECT description, amount, transaction_date 
                     FROM transactions 
                     WHERE budget_accounts_id = ? AND user_id = ?
-                """, (budget_accounts_id, self.userid))
+                    AND strftime('%m', transaction_date) = ? 
+                    AND strftime('%Y', transaction_date) = ?
+                """, (budget_accounts_id, self.userid, f"{current_month:02d}", f"{current_year}"))
                 transactions = self.cursor.fetchall()
 
                 # Format account data with transactions
