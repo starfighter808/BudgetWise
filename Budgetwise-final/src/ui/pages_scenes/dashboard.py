@@ -437,7 +437,7 @@ class BudgetInputPanel:
                             f"Error: Total budget would exceed ${self.total_budget:,.2f}",
                             color=self.colors.TEXT_COLOR
                         ),
-                        bgcolor=self.colors.RED_ERROR,
+                        bgcolor=self.colors.ERROR_RED,
                         duration=2000
                     )
                     self.dashboard.page.snack_bar = snackbar
@@ -454,8 +454,8 @@ class BudgetInputPanel:
                         break
                 
                 self.remaining_label.value = f"Remaining Budget: ${self.calculate_remaining():.2f}"
-                self.dashboard.update_pie_chart()
-                self.dashboard.page.update()
+                # self.dashboard.update_pie_chart()
+                # self.dashboard.page.update()
                 
             except ValueError:
                 e.control.value = str(account['allocated'])
