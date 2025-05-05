@@ -241,7 +241,7 @@ class Dashboard(ft.View):
                 vendor_name = transaction['vendor_name']
                 description = transaction['description']
                 timestamp_str = transaction['transaction_date']
-                timestamp = datetime.datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                timestamp = datetime.datetime.strptime(timestamp_str, '%Y-%m-%d')
                 date = timestamp.date()
                 amount = transaction['amount']
 
