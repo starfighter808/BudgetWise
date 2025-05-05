@@ -1,5 +1,5 @@
 import flet as ft
-from datetime import date
+from datetime import datetime, date
 
 class AddTransaction(ft.AlertDialog):
     def __init__(self, page, user_data, colors, trans_funcs, vend_funcs):
@@ -255,10 +255,9 @@ class AddTransaction(ft.AlertDialog):
 
         description = self.description_field.value or ""
         recurring = self.recurring_checkbox.value
-        transaction_date = self.selected_date
+        transaction_date = datetime.combine(self.selected_date, datetime.min.time())
 
-        # Determine status based on the transaction date
-        status = 2 if transaction_date <= date.today() else 1# 2: Processed, 1: Pending
+        status = 2 if transaction_date <= datetime.combine(date.today(), datetime.min.time()) else 1# 2: Processed, 1: Pending
 
 
         print(f"Inserting into transactions: user_id: {self.selected_account} vendor_ID: {self.selected_vendor} transaction amount: {amount} description (optional): {description} recurring: {recurring} date: {transaction_date} status: {status}")
@@ -310,7 +309,7 @@ class AddTransaction(ft.AlertDialog):
         recurring = self.recurring_checkbox.value
         transaction_date = self.selected_date
         # Determine a status value (this logic is carried over from confirm_transaction)
-        status = 2 if transaction_date <= date.today() else 1
+        status = 2 if transaction_date <= datetime.combine(date.today(), datetime.min.time()) else 1
         print(self.transaction_id)
         # Ensure the transaction_id is set (this should have been set when opening the dialog in edit mode)
         if not hasattr(self, "transaction_id") or self.transaction_id is None:
