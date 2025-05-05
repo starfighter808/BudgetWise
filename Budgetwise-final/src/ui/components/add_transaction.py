@@ -1,5 +1,5 @@
 import flet as ft
-from datetime import date
+from datetime import date, datetime
 
 class AddTransaction(ft.AlertDialog):
     def __init__(self, page, user_data, colors, trans_funcs, vend_funcs):
@@ -258,7 +258,11 @@ class AddTransaction(ft.AlertDialog):
         transaction_date = self.selected_date
 
         # Determine status based on the transaction date
-        status = 2 if transaction_date.date() <= date.today() else 1  # 2: Processed, 1: Pending
+        if isinstance(transaction_date, datetime):
+            transaction_date = transaction_date.date()
+
+        status = 2 if transaction_date <= date.today() else 1
+
 
 
 
@@ -313,6 +317,7 @@ class AddTransaction(ft.AlertDialog):
         transaction_date = self.selected_date
         # Determine a status value (this logic is carried over from confirm_transaction)
         status = 2 if transaction_date <= date.today() else 1
+
         print(self.transaction_id)
         # Ensure the transaction_id is set (this should have been set when opening the dialog in edit mode)
         if not hasattr(self, "transaction_id") or self.transaction_id is None:
@@ -401,5 +406,3 @@ class AddTransaction(ft.AlertDialog):
         self.selected_account = None
         self.update_trans = False
         self.transaction_id = None
-
-
