@@ -135,7 +135,10 @@ class AddTransaction(ft.AlertDialog):
     def open_date_picker_dialog(self, e):
         """Opens a DatePicker dialog to select a transaction date."""
         def handle_date_change(e):
-            self.selected_date = e.control.value
+            value = e.control.value
+            if isinstance(value, datetime):
+                value = value.date()
+            self.selected_date = value
             self.date_button.text = f"Select Transaction Date: {self.selected_date.strftime('%m/%d/%Y')}"
             self.page.update()
             self.close_date_picker_dialog()
